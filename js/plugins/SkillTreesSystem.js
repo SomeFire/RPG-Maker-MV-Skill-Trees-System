@@ -3,7 +3,7 @@
 //=============================================================================
 
 /*:
- * @plugindesc v1.0 Basic skill trees in a separate scene.
+ * @plugindesc v1.1 Basic skill trees in a separate scene.
  *
  * @author SomeFire
  *
@@ -42,6 +42,9 @@
  * Version 1.0:
  * - Finished plugin!
  *
+ * Version 1.1:
+ * - Possibility to add trees during the game.
+ *
  */
 
 //=============================================================================
@@ -55,8 +58,13 @@ SkillTreesSystem.enabled = true;
 /** Text for the menu button. */
 SkillTreesSystem.buttonValue = 'Skill Trees';
 
+SkillTreesSystem.noTreesText = "No skill trees available.";
+
+/** Amount of trees shown on the window at a time. */
+SkillTreesSystem.treeWindowMaxCols = 3;
+
 /** Amount of skill slots in a single row. */
-SkillTreesSystem.maxCols = 7;
+SkillTreesSystem.skillWindowMaxCols = 7;
 
 /** Use big cursor for skill icons with opaque background. Use small cursor for icons with transparent background. */
 SkillTreesSystem.skillCursorPadding = true;
@@ -85,16 +93,18 @@ Scene_SkillTrees.prototype.create = function() {
     Scene_MenuBase.prototype.create.call(this);
   
     this._treesWindow = new Trees_Window(0, 0);
-    this._treesWindow.setHandler('pagedown', this.nextActor.bind(this));
-    this._treesWindow.setHandler('pageup',   this.previousActor.bind(this));
     this._treesWindow.setHandler('ok',     this.onTreeOk.bind(this));
     this._treesWindow.setHandler('cancel', this.popScene.bind(this));
+    this._treesWindow.setHandler('pagedown', this.nextActor.bind(this));
+    this._treesWindow.setHandler('pageup',   this.previousActor.bind(this));
     this.addWindow(this._treesWindow);
 
     this._skillsWindow = new Skills_Window(0, this._treesWindow.windowHeight());
     this.addWindow(this._skillsWindow);
     this._skillsWindow.setHandler('ok',     this.onItemOk.bind(this));
     this._skillsWindow.setHandler('cancel', this.onItemCancel.bind(this));
+    this._skillsWindow.setHandler('pagedown', this.nextActor.bind(this));
+    this._skillsWindow.setHandler('pageup',   this.previousActor.bind(this));
     this._treesWindow.setSkillsWindow(this._skillsWindow);
 
     this._descriptionWindow = new Description_Window(this._skillsWindow.windowWidth(), this._treesWindow.windowHeight());
@@ -109,6 +119,9 @@ Scene_SkillTrees.prototype.start = function() {
     this._treesWindow.refresh();
     this._skillsWindow.refresh();
     this._descriptionWindow.refresh();
+
+    if (this._isSingleTreeActor())
+        this._treesWindow.processOk();
 };
 
 Scene_SkillTrees.prototype.refreshActor = function() {
@@ -122,6 +135,13 @@ Scene_SkillTrees.prototype.onActorChange = function() {
     this.refreshActor();
     this._treesWindow.activate();
     this._treesWindow.selectLast();
+
+    if (this._isSingleTreeActor())
+        this._treesWindow.processOk();
+};
+
+Scene_SkillTrees.prototype._isSingleTreeActor = function() {
+    return this._actor && this._actor.skillTrees && this._actor.skillTrees.trees.length === 1;
 };
 
 Scene_SkillTrees.prototype.onTreeOk = function() {
@@ -144,9 +164,13 @@ Scene_SkillTrees.prototype.onItemOk = function() {
 };
 
 Scene_SkillTrees.prototype.onItemCancel = function() {
-    Skills_Window._lastSelectedIndex[this._skillsWindow._tree.symbol] = this._skillsWindow.index();
+    Skills_Window._lastSelectedIndex[this._actor.actorId()][this._skillsWindow._tree.symbol] = this._skillsWindow.index();
+
     this._skillsWindow.deselect();
     this._treesWindow.activate();
+
+    if (this._isSingleTreeActor())
+        this._treesWindow.callHandler('cancel');
 };
 
 //-----------------------------------------------------------------------------
@@ -158,12 +182,18 @@ function Trees_Window() {
   this.initialize.apply(this, arguments);
 }
 
+Trees_Window._lastCommandSymbol = {};
+
 Trees_Window.prototype = Object.create(Window_Command.prototype);
 Trees_Window.prototype.constructor = Trees_Window;
 
 Trees_Window.prototype.initialize = function(x, y) {
     Window_Command.prototype.initialize.call(this, x, y, this.windowWidth(), this.windowHeight());
-  
+
+    this._actor = null;
+    this._skillsWindow = null;
+    this._descriptionWindow = null;
+
     this.selectLast();
 };
 
@@ -173,10 +203,6 @@ Trees_Window.prototype.setSkillsWindow = function(skillsWindow) {
 
 Trees_Window.prototype.setDescriptionWindow = function(descriptionWindow) {
     this._descriptionWindow = descriptionWindow;
-};
-
-Trees_Window.initCommandPosition = function() {
-    Trees_Window._lastCommandSymbol = null;
 };
 
 Trees_Window.prototype.windowWidth = function() {
@@ -192,51 +218,92 @@ Trees_Window.prototype.numVisibleRows = function() {
 };
 
 Trees_Window.prototype.maxCols = function() {
-    return 3;
+    if (this._actor && this._actor.skillTrees)
+        return Math.min(this._actor.skillTrees.trees.length, SkillTreesSystem.treeWindowMaxCols);
+
+    return 1;
 };
 
 Trees_Window.prototype.makeCommandList = function() {
     if (this._actor) {
-        this.addCommand(this._actor.skillTrees.trees[0].name, this._actor.skillTrees.trees[0].symbol, true);
-        this.addCommand(this._actor.skillTrees.trees[1].name, this._actor.skillTrees.trees[1].symbol, true);
-        this.addCommand(this._actor.skillTrees.trees[2].name, this._actor.skillTrees.trees[2].symbol, true);
+        if (this._actor.skillTrees && this._actor.skillTrees.trees && this._actor.skillTrees.trees.length > 0) {
+            for (let tree of this._actor.skillTrees.trees)
+                this.addCommand(tree.name, tree.symbol, true);
+        } else
+            this.addCommand(SkillTreesSystem.noTreesText, null, false);
     }
+
+    if (this._skillsWindow)
+        this._skillsWindow.setSkillTree(this.currentSymbol());
 };
 
 Trees_Window.prototype.processOk = function() {
-    Trees_Window._lastCommandSymbol = this.currentSymbol();
+    Trees_Window._lastCommandSymbol[this._actor.actorId()] = this.currentSymbol();
     Window_Command.prototype.processOk.call(this);
 };
 
-Trees_Window.prototype.selectLast = function() {
-    this.selectSymbol(Trees_Window._lastCommandSymbol);
+Trees_Window.prototype.selectLast = function(actor) {
+    this.selectSymbol(actor ? Trees_Window._lastCommandSymbol[actor.actorId()] : null);
 };
 
 Trees_Window.prototype.select = function(index) {
-    Window_Selectable.prototype.select.call(this, index);
+    Window_Command.prototype.select.call(this, index);
+
+    if (this._skillsWindow)
+        this._skillsWindow.setSkillTree(this.currentSymbol());
 
     if (this._actor && this._descriptionWindow)
-        this._descriptionWindow.showDescripion(this._actor.skillTrees.trees[index], null);
+        this._descriptionWindow.showDescripion(this._actor.skillTrees ? this._actor.skillTrees.trees[index] : null);
 };
 
 Trees_Window.prototype.setActor = function(actor) {
     if (this._actor !== actor) {
         this._actor = actor;
         this.refresh();
-        this.selectLast();
+        this.selectLast(actor);
     }
-};
-
-Trees_Window.prototype.update = function() {
-    Window_Command.prototype.update.call(this);
-
-    if (this._skillsWindow && this.currentSymbol())
-        this._skillsWindow.setSkillTree(this.currentSymbol());
 };
 
 Trees_Window.prototype.itemTextAlign = function() {
     return 'center';
 };
+
+Trees_Window.prototype._createAllParts = function() {
+    Window_Command.prototype._createAllParts.call(this);
+    this._leftArrowSprite = new Sprite();
+    this._rightArrowSprite = new Sprite();
+    this.addChild(this._leftArrowSprite);
+    this.addChild(this._rightArrowSprite);
+};
+
+Trees_Window.prototype._refreshArrows = function() {
+    var w = this._width;
+    var h = this._height;
+    var p = 24; // arrow width
+    var q = p/2; // arrow height
+    var sx = 96+p;
+    var sy = 0+p;
+    this._leftArrowSprite.bitmap = this._windowskin;
+    this._leftArrowSprite.anchor.x = 0.5;
+    this._leftArrowSprite.anchor.y = 0.5;
+    this._leftArrowSprite.setFrame(sx, sy+q, q, p);
+    this._leftArrowSprite.move(q, h/2);
+    this._rightArrowSprite.bitmap = this._windowskin;
+    this._rightArrowSprite.anchor.x = 0.5;
+    this._rightArrowSprite.anchor.y = 0.5;
+    this._rightArrowSprite.setFrame(sx+q+p, sy+q, q, p);
+    this._rightArrowSprite.move(w-q, h/2);
+};
+
+Trees_Window.prototype._updateArrows = function() {
+    var tooManyItems = this.maxItems() > SkillTreesSystem.treeWindowMaxCols;
+
+    this._leftArrowSprite.visible = this.isOpen() && this._leftArrowSprite && tooManyItems;
+    this._rightArrowSprite.visible = this.isOpen() && this._rightArrowSprite && tooManyItems;
+};
+
+Trees_Window.prototype.cursorDown = function(wrap) {};
+Trees_Window.prototype.cursorUp = function(wrap) {};
 
 //-----------------------------------------------------------------------------
 // Skills Window
@@ -264,15 +331,15 @@ Skills_Window.prototype.setDescriptionWindow = function(descriptionWindow) {
 };
 
 Skills_Window.prototype.maxItems = function() {
-    return this._tree.skills.length;
+    return this._tree ? this._tree.skills.length : 0;
 };
 
 Skills_Window.prototype.maxCols = function() {
-    return SkillTreesSystem.maxCols;
+    return SkillTreesSystem.skillWindowMaxCols;
 };
 
 Skills_Window.prototype.windowWidth = function() {
-    return Window_Base._iconWidth * SkillTreesSystem.maxCols + this.standardPadding() * 2 - 8;
+    return Window_Base._iconWidth * SkillTreesSystem.skillWindowMaxCols + this.standardPadding() * 2 - 8;
 };
 
 Skills_Window.prototype.windowHeight = function() {
@@ -282,6 +349,8 @@ Skills_Window.prototype.windowHeight = function() {
 Skills_Window.prototype.setActor = function(actor) {
     if (this._actor !== actor) {
         this._actor = actor;
+        this._tree = null;
+        this.selectLast();
         this.refresh();
     }
 };
@@ -292,14 +361,18 @@ Skills_Window.prototype.setSkillTree = function(symbol) {
 };
 
 Skills_Window.prototype.findTree = function(symbol) {
-    var trees = this._actor.skillTrees.trees;
+    if (!symbol)
+        return null;
 
-    for (var i = 0; i < trees.length; i++) {
-        if (trees[i].symbol === symbol)
-            return trees[i];
+    if (this._actor && this._actor.skillTrees) {
+        var trees = this._actor.skillTrees.trees;
+
+        for (var i = 0; i < trees.length; i++) {
+            if (trees[i].symbol === symbol)
+                return trees[i];
+        }
     }
 
-    console.error("Skill tree \"" + symbol + "\" wasn't found.");
     return null;
 };
 
@@ -312,8 +385,8 @@ Skills_Window.prototype.itemHeight = function() {
 };
 
 Skills_Window.prototype.drawItem = function(treeObj, index) {
-    var x = Window_Base._iconWidth * (index % SkillTreesSystem.maxCols);
-    var y = Window_Base._iconHeight * Math.floor(index / SkillTreesSystem.maxCols);
+    var x = Window_Base._iconWidth * (index % SkillTreesSystem.skillWindowMaxCols);
+    var y = Window_Base._iconHeight * Math.floor(index / SkillTreesSystem.skillWindowMaxCols);
 
     this.changePaintOpacity(treeObj.isEnabled(this._actor, this._tree));
     this.drawIcon(treeObj.iconId(), x, y);
@@ -358,20 +431,29 @@ Skills_Window.prototype.select = function(index) {
     Window_Selectable.prototype.select.call(this, index);
 
     if (this._descriptionWindow)
-        this._descriptionWindow.showDescripion(this._tree, this._tree.skills[index]);
+        this._descriptionWindow.showDescripion(this._tree, this._tree ? this._tree.skills[index] : null);
 };
 
 Skills_Window.prototype.selectLast = function() {
-    if (!Skills_Window._lastSelectedIndex[this._tree.symbol]) {
+    if (!this._actor || !this._tree) {
+        this.deselect();
+
+        return;
+    }
+
+    if (!Skills_Window._lastSelectedIndex[this._actor.actorId()])
+        Skills_Window._lastSelectedIndex[this._actor.actorId()] = {};
+
+    if (!Skills_Window._lastSelectedIndex[this._actor.actorId()][this._tree.symbol]) {
         for (let i = 0; i < this._tree.skills.length; i++) {
             if (this._tree.skills[i] instanceof Skill) {
-                Skills_Window._lastSelectedIndex[this._tree.symbol] = i;
+                Skills_Window._lastSelectedIndex[this._actor.actorId()][this._tree.symbol] = i;
                 break;
             }
         }
     }
 
-    this.select(Skills_Window._lastSelectedIndex[this._tree.symbol]);
+    this.select(Skills_Window._lastSelectedIndex[this._actor.actorId()][this._tree.symbol]);
 };
 
 Skills_Window.prototype.itemRect = function(index) {
@@ -379,8 +461,8 @@ Skills_Window.prototype.itemRect = function(index) {
     var maxCols = this.maxCols();
     rect.width = this.itemWidth();
     rect.height = this.itemHeight();
-    rect.x = Window_Base._iconWidth * (index % SkillTreesSystem.maxCols);
-    rect.y = Window_Base._iconHeight * Math.floor(index / SkillTreesSystem.maxCols);
+    rect.x = Window_Base._iconWidth * (index % SkillTreesSystem.skillWindowMaxCols);
+    rect.y = Window_Base._iconHeight * Math.floor(index / SkillTreesSystem.skillWindowMaxCols);
     return rect;
 };
 
@@ -529,7 +611,7 @@ Description_Window.prototype.initialize = function(x, y) {
 };
 
 Description_Window.prototype.windowWidth = function() {
-    return Graphics.boxWidth - (Window_Base._iconWidth * SkillTreesSystem.maxCols + this.standardPadding() * 2 - 8);
+    return Graphics.boxWidth - (Window_Base._iconWidth * SkillTreesSystem.skillWindowMaxCols + this.standardPadding() * 2 - 8);
 };
 
 Description_Window.prototype.windowHeight = function() {
@@ -544,11 +626,9 @@ Description_Window.prototype.setActor = function(actor) {
 };
 
 Description_Window.prototype.showDescripion = function (tree, skill) {
-    if (this._skill !== skill || this._tree !== tree) {
-        this._skill = skill;
-        this._tree = tree;
-        this.refresh();
-    }
+    this._tree = tree;
+    this._skill = skill;
+    this.refresh();
 };
 
 Description_Window.prototype.refresh = function() {
@@ -558,7 +638,7 @@ Description_Window.prototype.refresh = function() {
         var fullW = this.windowWidth() - this.padding * 2;
         var w = (fullW - Window_Base._faceWidth) / 2;
 
-        if (this._actor && this._tree) {
+        if (this._actor) {
 
             this.drawActorFace(this._actor, 0, 0, Window_Base._faceWidth, Window_Base._faceHeight);
 
@@ -568,7 +648,8 @@ Description_Window.prototype.refresh = function() {
             this.drawActorClass(this._actor, Window_Base._faceWidth, this.lineHeight(), w);
             this.drawActorFreePoints(this._actor, Window_Base._faceWidth + w, this.lineHeight(), w);
 
-            this.drawActorTreePoints(this._actor, this._tree, Window_Base._faceWidth, this.lineHeight() * 2, w * 2);
+            if (this._tree)
+                this.drawActorTreePoints(this._actor, this._tree, Window_Base._faceWidth, this.lineHeight() * 2, w * 2);
 
             // Line 3 is empty.
             this.drawLine(this.lineHeight() * 4);
@@ -612,6 +693,9 @@ Description_Window.prototype.refresh = function() {
 };
 
 Description_Window.prototype.drawActorFreePoints = function(actor, x, y, width) {
+    if (!actor.skillTrees)
+        return;
+
     var text = SkillTreesSystem.freePointsText();
     var textWidth = this.textWidth(text);
     textWidth = (textWidth < width - 50) ? textWidth : width - 50;

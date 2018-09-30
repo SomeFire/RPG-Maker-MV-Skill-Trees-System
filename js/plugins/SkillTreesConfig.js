@@ -3,7 +3,7 @@
 //=============================================================================
 
 /*:
- * @plugindesc v1.0 Basic skill trees in a separate scene.
+ * @plugindesc v1.1 Basic skill trees in a separate scene.
  *
  * @author SomeFire
  *
@@ -53,6 +53,9 @@
  *
  * Version 1.0:
  * - Finished plugin!
+ *
+ * Version 1.1:
+ * - Possibility to add trees during the game.
  *
  */
 
@@ -420,7 +423,7 @@ arrowLeft = new Arrow(29);
 // This skill is a single-level skill.
 guard = skill([2], [ // Skill ID from database skills.
     [cost(1)]        // Skill requirement. This skill cost 1 skill point.
-])
+]);
 // This skill is a 3-level skill.
 combatReflexes = skill([11, 12, 13], [ // Skill IDs
     [cost(1)],                         // Skill requirement for 1 level (skill ID = 11)
@@ -444,6 +447,37 @@ rampage = skill([15], [
 ]);
 armorBreak = skill([16, 17, 18], [
     [cost(1), treePoints(5), skillReq(berserkerDance)],
+    [cost(2)],
+    [cost(3)]
+]);
+
+// This skill is a single-level skill.
+guard2 = skill([2], [ // Skill ID from database skills.
+    [cost(1)]        // Skill requirement. This skill cost 1 skill point.
+]);
+// This skill is a 3-level skill.
+combatReflexes2 = skill([11, 12, 13], [ // Skill IDs
+    [cost(1)],                         // Skill requirement for 1 level (skill ID = 11)
+    [cost(1)],                         // Skill requirement for 2 level (skill ID = 12)
+    [cost(1)]                          // Skill requirement for 3 level (skill ID = 13)
+]);
+dualAttack2 = skill([3], [
+    [cost(1), skillReq(combatReflexes2, 1)] // Skill cost 1 skill point and requires 'combatReflexes' skill
+]);                                        // learned at 1 level. Level can be skipped, see next skill.
+doubleAttack2 = skill([4], [
+    [cost(1), skillReq(combatReflexes2), lvl(3)] // Same as above, but can be learned by heroes with level 3 or above.
+]);
+tripleAttack2 = skill([5], [
+    [cost(1), lvl(5), skillReq(combatReflexes2, 2), skillReq(doubleAttack2)] // Requires 2 skills.
+]);
+berserkerDance2 = skill([14], [
+    [cost(3), skillReq(tripleAttack2)]
+]);
+rampage2 = skill([15], [
+    [cost(3), skillReq(combatReflexes2, 3), treePoints(9), skillReq(berserkerDance2)]
+]);
+armorBreak2 = skill([16, 17, 18], [
+    [cost(1), treePoints(5), skillReq(berserkerDance2)],
     [cost(2)],
     [cost(3)]
 ]);
@@ -487,6 +521,32 @@ SkillTreesSystem.actor2tree = {
             null,   null,           null,          null,               null,       null,            null,
             null,   null,           null,          null,               null,       null,            null,
         ])]
+    ),
+    2: new SkillTrees(55, // Character will have 55 skill points to spend at the begining.
+        [new SkillTree('Berserk', 'berserk_tree', [
+            // Null represents empty square in the skill window.
+            // Arrow points from one skill to another.
+            null,   null,           null,          combatReflexes2,     null,       guard2,           null,
+            null,   null,           arrowLeft,     arrowDown,          null,       null,            null,
+            null,   dualAttack2,     null,          doubleAttack2,       null,       null,            null,
+            null,   null,           null,          arrowDown,          null,       null,            null,
+            null,   null,           null,          tripleAttack2,       null,       null,            null,
+            null,   null,           null,          arrowDown,          null,       null,            null,
+            null,   null,           null,          berserkerDance2,     null,       null,            null,
+            null,   null,           null,          arrowDown,          arrowRight, null,            null,
+            null,   null,           null,          rampage2,            null,       armorBreak2,      null,
+        ])]
     )
-
 };
+
+SkillTreesSystem.fTree = new SkillTree('Fourh Tree', 'f_tree', [
+    null,   null,           null,          null,               null,       null,            null,
+    null,   null,           null,          null,               null,       null,            null,
+    null,   null,           null,          null,               null,       null,            null,
+    null,   null,           null,          null,               null,       armorBreak,      null,
+    null,   null,           null,          null,               null,       null,            null,
+    null,   null,           null,          null,               null,       null,            null,
+    null,   null,           null,          null,               null,       null,            null,
+    null,   null,           null,          null,               null,       null,            null,
+    null,   null,           null,          null,               null,       null,            null,
+]);
