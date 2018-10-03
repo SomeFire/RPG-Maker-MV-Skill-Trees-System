@@ -29,16 +29,21 @@
  * Because it is Java*Cough*Script you should create trees in the end of file.
  *
  * ----------------------------------------------------------------------------
- * How to bind trees to the actor:
- *     $gameActors.actor(actorId).skillTrees = SkillTreesSystem.actor2tree[actorId];
+ * How to bind group of trees to the actor:
+ *     actor.setSkillTrees(skillTreesObjectId);
  *
- *  actor.skillTrees - is the new actor field.
- *  SkillTreesSystem.actor2tree - map containing trees for each actor.
+ *  skillTreesObjectId - ID of SkillTrees object. Usually the same as actor ID.
+ *   You need to create trees in the SkillTreesSystem.actor2tree field.
+ * ----------------------------------------------------------------------------
+ * How to add tree:
+ *     actor.addTree(skillTree);
+ *
+ *  skillTree - SkillTree object. You need to create it in the end of this file.
  * ----------------------------------------------------------------------------
  * How to add skill points:
- *     $gameActors.actor(actorId).skillTrees.points += X;
+ *     actor.addTreesPoints(points);
  *
- *  X is points you want to give.
+ *  points - number of points you want to give to the actor.
  *
  * ============================================================================
  * Terms of use
@@ -56,6 +61,7 @@
  *
  * Version 1.1:
  * - Possibility to add trees during the game.
+ * - Added API section.
  *
  */
 
@@ -215,6 +221,14 @@ class SkillTree {
  */
 class SkillTrees {
     constructor(freePoints, trees) {
+        if (!freePoints)
+            freePoints = 0;
+
+        if (!trees)
+            trees = [];
+        else if (trees instanceof SkillTree)
+            trees = [trees];
+
         this.points = freePoints;
         this.trees = trees;
     }
@@ -378,7 +392,7 @@ function skillReq(skill, lvl) {
 /**
  * Character should have high level to meet this requirement.
  *
- * @param lvl Hero level.
+ * @param level Hero level.
  */
 function lvl(level) {
     return new LevelRequirement(level);
@@ -388,33 +402,59 @@ function lvl(level) {
 /**
  * Tree skill object.
  *
- * @param levels Array of skill IDs.
+ * @param skillIds Array of skill IDs.
  * @param requirements Array of requirements for every skill level.
  */
 function skill(skillIds, requirements) {
     return new Skill(skillIds, requirements);
 }
 
-/**
- * Arrow pointing down.
- *
- * @type {Arrow}
- */
-arrowDown = new Arrow(28);
+//=============================================================================
+// API
+//=============================================================================
 
 /**
- * Arrow pointing from top left corner to right down.
+ * Setup actor's skill trees.
  *
- * @type {Arrow}
+ * @param skillTreesObjectId SkillTrees ID. Usually it is actor ID.
+ * See {@link SkillTreesSystem.actor2tree}.
  */
-arrowRight = new Arrow(30);
+Game_Actor.prototype.setSkillTrees = function(skillTreesObjectId) {
+    if (!SkillTreesSystem.actor2tree[skillTreesObjectId])
+        throw new ReferenceError("No such SkillTrees object.");
+
+    this.skillTrees = SkillTreesSystem.actor2tree[skillTreesObjectId];
+};
 
 /**
- * Arrow pointing from top right corner to left down.
+ * Add a skill tree to the actor.
  *
- * @type {Arrow}
+ * @param skillTreeObject {@link SkillTree SkillTree object}.
  */
-arrowLeft = new Arrow(29);
+Game_Actor.prototype.addTree = function(skillTreeObject) {
+    if (!this.skillTrees)
+        this.skillTrees = new SkillTrees();
+
+    if (!skillTreeObject instanceof SkillTree)
+        throw new TypeError("You should add a new SkillTree object.");
+
+    this.skillTrees.trees.push(skillTreeObject);
+};
+
+/**
+ * Give some skill points to the actor.
+ *
+ * @param points Amount of points to give.
+ */
+Game_Actor.prototype.addTreesPoints = function(points) {
+    if (!points)
+        points = 1;
+
+    if (!this.skillTrees)
+        this.skillTrees = new SkillTrees(points);
+
+    this.skillTrees.points += points;
+};
 
 //=============================================================================
 // Skills Example
@@ -482,10 +522,36 @@ armorBreak2 = skill([16, 17, 18], [
     [cost(3)]
 ]);
 
+/**
+ * Arrow pointing down.
+ *
+ * @type {Arrow}
+ */
+arrowDown = new Arrow(28);
+
+/**
+ * Arrow pointing from top left corner to right down.
+ *
+ * @type {Arrow}
+ */
+arrowRight = new Arrow(30);
+
+/**
+ * Arrow pointing from top right corner to left down.
+ *
+ * @type {Arrow}
+ */
+arrowLeft = new Arrow(29);
+
 //=============================================================================
 // Skill Trees Example
 //=============================================================================
 
+/**
+ * Contain trees setup tied to actor ID.
+ *
+ * @type {{"1": actorId, "2": SkillTrees}}
+ */
 SkillTreesSystem.actor2tree = {
     1: new SkillTrees(55, // Character will have 55 skill points to spend at the begining.
         [new SkillTree('Berserk', 'berserk_tree', [
@@ -522,10 +588,8 @@ SkillTreesSystem.actor2tree = {
             null,   null,           null,          null,               null,       null,            null,
         ])]
     ),
-    2: new SkillTrees(55, // Character will have 55 skill points to spend at the begining.
+    2: new SkillTrees(55,
         [new SkillTree('Berserk', 'berserk_tree', [
-            // Null represents empty square in the skill window.
-            // Arrow points from one skill to another.
             null,   null,           null,          combatReflexes2,     null,       guard2,           null,
             null,   null,           arrowLeft,     arrowDown,          null,       null,            null,
             null,   dualAttack2,     null,          doubleAttack2,       null,       null,            null,
@@ -536,8 +600,52 @@ SkillTreesSystem.actor2tree = {
             null,   null,           null,          arrowDown,          arrowRight, null,            null,
             null,   null,           null,          rampage2,            null,       armorBreak2,      null,
         ])]
-    )
+    ),
+    3: _sample_sameTreeSetupForDifferentActors(),
+    4: _sample_sameTreeSetupForDifferentActors()
 };
+
+/**
+ * @returns {SkillTrees} New SkillTrees object.
+ * @private
+ */
+function _sample_sameTreeSetupForDifferentActors() {
+    return new SkillTrees(55,
+        [new SkillTree('Same Trees 1', 'same_trees_1', [
+            // Null represents empty square in the skill window.
+            // Arrow points from one skill to another.
+            null,   null,           null,          combatReflexes,     null,       guard,           null,
+            null,   null,           arrowLeft,     arrowDown,          null,       null,            null,
+            null,   dualAttack,     null,          doubleAttack,       null,       null,            null,
+            null,   null,           null,          arrowDown,          null,       null,            null,
+            null,   null,           null,          tripleAttack,       null,       null,            null,
+            null,   null,           null,          arrowDown,          null,       null,            null,
+            null,   null,           null,          berserkerDance,     null,       null,            null,
+            null,   null,           null,          null,               null,       null,            null,
+            null,   null,           null,          null,               null,       null,            null,
+        ]), new SkillTree('Same Trees 2', 'same_trees_2', [
+            null,   null,           null,          combatReflexes,     null,       null,            null,
+            null,   null,           arrowLeft,     arrowDown,          null,       null,            null,
+            null,   dualAttack,     null,          doubleAttack,       null,       null,            null,
+            null,   null,           null,          arrowDown,          null,       null,            null,
+            null,   null,           null,          tripleAttack,       null,       null,            null,
+            null,   null,           null,          arrowDown,          null,       null,            null,
+            null,   null,           null,          berserkerDance,     null,       null,            null,
+            null,   null,           null,          null,               null,       null,            null,
+            null,   null,           null,          null,               null,       null,            null,
+        ]), new SkillTree('Same Trees 3', 'same_trees_3', [
+            null,   null,           null,          null,               null,       guard,           null,
+            null,   null,           null,          null,               null,       null,            null,
+            null,   null,           null,          null,               null,       null,            null,
+            null,   null,           null,          null,               null,       armorBreak,      null,
+            null,   null,           null,          null,               null,       null,            null,
+            null,   null,           null,          null,               null,       null,            null,
+            null,   null,           null,          null,               null,       null,            null,
+            null,   null,           null,          null,               null,       null,            null,
+            null,   null,           null,          null,               null,       null,            null,
+        ])]
+    )
+}
 
 SkillTreesSystem.fTree = new SkillTree('Fourh Tree', 'f_tree', [
     null,   null,           null,          null,               null,       null,            null,

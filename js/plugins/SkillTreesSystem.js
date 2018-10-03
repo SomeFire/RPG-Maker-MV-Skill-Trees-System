@@ -15,18 +15,14 @@
  * To use this plugin you need to create your own skill trees in the
  * SkillTreesConfig.js file and add trees to the actors when the game starts.
  *
- * For example:
- *     $gameActors.actor(actorId).skillTrees = SkillTreesSystem.actor2tree[X];
+ *     actor.setSkillTrees(skillTreesObjectId);
  *
- * actor.skillTrees - is the new field, it should be filled for all actors.
+ * To add tree or skill points use next code:
  *
- * SkillTreesSystem.actor2tree[X] - is a key-value map where
- *  value is skill trees object. See config file for example.
+ *     actor.addTree(skillTree);
+ *     actor.addTreesPoints(points);
  *
- * To add skill points use next code:
- *     $gameActors.actor(actorId).skillTrees.points += X;
- *
- * X is points you want to give.
+ * See SkillTreesConfig.js for details.
  *
  * ============================================================================
  * Terms of use
@@ -44,6 +40,7 @@
  *
  * Version 1.1:
  * - Possibility to add trees during the game.
+ * - Added API section.
  *
  */
 
