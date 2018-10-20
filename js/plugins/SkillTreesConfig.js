@@ -65,6 +65,7 @@
  *
  * Version 1.2:
  * - Added item requirement.
+ * - Added game variable and game switch requirements.
  * - Added on skill learn action to change game variables.
  *
  */
@@ -454,6 +455,66 @@ class LevelRequirement extends Requirement {
 }
 
 /**
+ * Game variable should be greater or equal to given value to meet this requirement.
+ */
+class VariableRequirement extends Requirement {
+    /**
+     * @param variableId Game variable ID.
+     * @param intValue Game variable should be greater or equal to this value to meet requirement.
+     */
+    constructor(variableId, intVal) {
+        if (!variableId)
+            throw new TypeError("Unidentified variable ID.");
+
+		if (!intVal || !((intVal ^ 0) === intVal))
+			throw new RangeError("Required value must be an integer.");
+
+        super("game_variable");
+        this.varId = variableId;
+        this.intVal = intVal;
+    }
+
+    meets(actor, tree) {
+        return $gameVariables.value(this.varId) >= this.intVal;
+    }
+
+    text() {
+        return this.intVal + " " + $dataSystem.variables[this.varId];
+    }
+}
+
+/**
+ * Game variable should be greater or equal to given value to meet this requirement.
+ */
+class SwitchRequirement extends Requirement {
+    /**
+     * @param switchId Game switch ID.
+     * @param val Boolean true - if game switch should be set to meet requirement.
+     * Boolean false - if game switch should be unset to meet requirement.
+     * Default value = true.
+     */
+    constructor(switchId, val) {
+        if (!switchId)
+            throw new TypeError("Unidentified variable ID.");
+
+		if (val === undefined)
+			val = true;
+
+        super("game_switch");
+        this.switchId = switchId;
+        this.val = val;
+    }
+
+    meets(actor, tree) {
+        return $gameSwitches.value(this.switchId) === this.val;
+    }
+
+    text() {
+        return $dataSystem.switches[this.switchId] + " must be " + (this.val ? "enabled" : "disabled");
+    }
+}
+
+/**
  * Interface for actions after skill learn. See implementations.
  */
 class OnLearnAction {
@@ -466,9 +527,15 @@ class OnLearnAction {
 class OnLearnChangeVariable extends OnLearnAction {
     /**
      * @param variableId Game variable ID.
-     * @param increment Variable value will be changed by this value.
+     * @param increment Variable value will be changed by this value. Default value = 1.
      */
     constructor(variableId, increment) {
+        if (!variableId)
+            throw new TypeError("Unidentified variable ID.");
+
+        if (!increment)
+            increment = 1;
+
         super();
         this.varId = variableId;
         this.inc = increment;
@@ -531,7 +598,25 @@ function lvl(level) {
 
 /**
  * @param variableId Game variable ID.
- * @param increment Variable value will be changed by this value.
+ * @param intValue Game variable should be greater or equal to this value to meet requirement.
+ */
+function varReq(variableId, intValue) {
+    return new VariableRequirement(variableId, intValue);
+}
+
+/**
+ * @param switchId Game switch ID.
+ * @param val Boolean true - if game switch should be set to meet requirement.
+ * Boolean false - if game switch should be unset to meet requirement.
+ * Default value = true.
+ */
+function switchReq(switchId, value) {
+    return new SwitchRequirement(switchId, value);
+}
+
+/**
+ * @param variableId Game variable ID.
+ * @param increment Variable value will be changed by this value. Default value = 1.
  */
 function changeVar(variableId, increment) {
     return new OnLearnChangeVariable(variableId, increment);
@@ -631,7 +716,7 @@ armorBreak = skill([16, 17, 18], [
 
 
 guard2 = skill([2], [
-    [cost(1)],
+    [cost(1), switchReq(1)], // Requires switch 1 to be true.
 ], [
     [changeVar(1, 2)] // On learn action, which increase the game variable 1 by 2.
 ]);
@@ -645,7 +730,7 @@ combatReflexes2 = skill([11, 12, 13], [
      [changeVar(1, 3)]  // On skill upgrade to third  level will increase the game variable 1 by 3.
 ]);
 dualAttack2 = skill([3], [
-    [cost(1), skillReq(combatReflexes2, 1)]
+    [cost(1), skillReq(combatReflexes2, 1), varReq(1, 2)] // Requires game variable 1 to be 2 or greater.
 ]);
 doubleAttack2 = skill([4], [
     [cost(1), skillReq(combatReflexes2), lvl(3)]

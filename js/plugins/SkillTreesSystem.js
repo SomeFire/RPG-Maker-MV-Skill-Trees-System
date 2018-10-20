@@ -44,6 +44,7 @@
  *
  * Version 1.2:
  * - Added item requirement.
+ * - Added game variable and game switch requirements.
  * - Added on skill learn action to change game variables.
  *
  */
