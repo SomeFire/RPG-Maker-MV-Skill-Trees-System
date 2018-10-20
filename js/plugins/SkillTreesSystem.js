@@ -46,6 +46,7 @@
  * - Added item requirement.
  * - Added game variable and game switch requirements.
  * - Added on skill learn action to change game variables.
+ * - Colored requirements.
  *
  */
 
@@ -676,20 +677,6 @@ Description_Window.prototype.refresh = function() {
                 this.drawText(SkillTreesSystem.requirementsText(), 0, this.lineHeight() * 9);
                 this.drawRequirements(reqs, this.lineHeight() * 10);
             }
-            /*
-              level = [@actor.est_skill_level(@skill_object, @tree_id) - 1, 0].max # Which element of the row with skill IDs should be picked?
-              if !@actor.est_skill_maxed?(@skill_object, @tree_id) and @actor.est_skill_level(@skill_object, @tree_id) != 0 and EME::SKILL_TREES::DISPLAY_NEXT_LEVEL
-                @current_skill = $data_skills[@skill_object[1][level + 1]]
-              else
-                @current_skill = $data_skills[@skill_object[1][level]] # The skill that will be picked
-              end
-              draw_skill_name(0, 106, EME::SKILL_TREES::COST_X - 24)
-              draw_skill_cost(EME::SKILL_TREES::COST_X, 106)
-              draw_skill_level(136, 1130)
-              draw_description(0, 154)
-              draw_line_2
-              draw_requirements(0, 208)
-             */
         }
     }
 };
@@ -737,13 +724,22 @@ Description_Window.prototype.drawCastCost = function(skill, x, y, w) {
 };
 
 Description_Window.prototype.drawRequirements = function(reqs, y) {
+    var color = this.textColor();
+
     for (var i = 0; i < reqs.length; i++) {
         var req = reqs[i];
+
+        if (req.meets(this._actor, this._tree))
+            this.changeTextColor(this.powerUpColor())
+        else
+            this.changeTextColor(this.powerDownColor())
 
         this.drawText(req.text(), 0, y);
 
         y += this.lineHeight();
     }
+
+    this.changeTextColor(color);
 };
 
 Description_Window.prototype.spacing = function() {
