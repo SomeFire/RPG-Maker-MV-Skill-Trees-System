@@ -65,6 +65,7 @@
  *
  * Version 1.2:
  * - Added item requirement.
+ * - Added on skill learn action to change game variables.
  *
  */
 
@@ -107,11 +108,12 @@ class Skill extends TreeObject {
      * @param levels Array of skill IDs.
      * @param requirements Array of requirements for every skill level.
      */
-    constructor(levels, requirements) {
+    constructor(levels, requirements, onLearnActions) {
         super();
         this.lvls = levels;
-        this.reqs = requirements;
         this.level = 0;
+        this.reqs = requirements;
+        this.learnActions = onLearnActions;
     }
 
     iconId() {
@@ -143,11 +145,20 @@ class Skill extends TreeObject {
         if (this.level < 0 && this.level >= this.lvls.length)
             return;
 
+        var reqs = this.requirements();
+        var onLearnActions = this.onLearnActions();
+
         // Reqs can't be null here.
-        for (let req of this.requirements())
+        for (let req of reqs)
             req.use(actor, tree);
 
         this.levelUp(actor);
+
+        if (!onLearnActions)
+            return;
+
+        for (let act of onLearnActions)
+            act.action();
     }
 
     levelUp(actor, n) {
@@ -177,7 +188,11 @@ class Skill extends TreeObject {
     }
 
     requirements() {
-        return (this.level === this.lvls.length) ? null : this.reqs[this.level];
+        return (!this.reqs || this.level === this.lvls.length) ? null : this.reqs[this.level];
+    }
+
+    onLearnActions() {
+        return (!this.learnActions || this.level === this.lvls.length) ? null : this.learnActions[this.level];
     }
 }
 
@@ -439,6 +454,34 @@ class LevelRequirement extends Requirement {
 }
 
 /**
+ * Interface for actions after skill learn. See implementations.
+ */
+class OnLearnAction {
+    action() {}
+}
+
+/**
+ * Will change game variable by given increment.
+ */
+class OnLearnChangeVariable extends OnLearnAction {
+    /**
+     * @param variableId Game variable ID.
+     * @param increment Variable value will be changed by this value.
+     */
+    constructor(variableId, increment) {
+        super();
+        this.varId = variableId;
+        this.inc = increment;
+    }
+
+    action() {
+        var oldVal = $gameVariables.value(this.varId);
+
+        $gameVariables.setValue(this.varId, oldVal + this.inc)
+    }
+}
+
+/**
  * Character should have some skill points to buy this skill.
  *
  * @param price Price in skill points.
@@ -486,6 +529,13 @@ function lvl(level) {
     return new LevelRequirement(level);
 }
 
+/**
+ * @param variableId Game variable ID.
+ * @param increment Variable value will be changed by this value.
+ */
+function changeVar(variableId, increment) {
+    return new OnLearnChangeVariable(variableId, increment);
+}
 
 /**
  * Tree skill object.
@@ -493,8 +543,8 @@ function lvl(level) {
  * @param skillIds Array of skill IDs.
  * @param requirements Array of requirements for every skill level.
  */
-function skill(skillIds, requirements) {
-    return new Skill(skillIds, requirements);
+function skill(skillIds, requirements, onLearnActions) {
+    return new Skill(skillIds, requirements, onLearnActions);
 }
 
 //=============================================================================
@@ -553,7 +603,7 @@ guard = skill([2], [ // Skill ID from database skills.
     [cost(1)]        // Skill requirement. This skill cost 1 skill point.
 ]);
 // This skill is a 3-level skill.
-combatReflexes = skill([11, 12, 13], [ // Skill IDs
+combatReflexes = skill([11, 12, 13], [ // Skill IDs from database skills.
     [cost(1)],                         // Skill requirement for 1 level (skill ID = 11)
     [cost(1)],                         // Skill requirement for 2 level (skill ID = 12)
     [cost(1)]                          // Skill requirement for 3 level (skill ID = 13)
@@ -579,24 +629,29 @@ armorBreak = skill([16, 17, 18], [
     [cost(3), itemReq('item', 1, 5)]
 ]);
 
-// This skill is a single-level skill.
-guard2 = skill([2], [ // Skill ID from database skills.
-    [cost(1)]        // Skill requirement. This skill cost 1 skill point.
+
+guard2 = skill([2], [
+    [cost(1)],
+], [
+    [changeVar(1, 2)] // On learn action, which increase the game variable 1 by 2.
 ]);
-// This skill is a 3-level skill.
-combatReflexes2 = skill([11, 12, 13], [ // Skill IDs
-    [cost(1)],                         // Skill requirement for 1 level (skill ID = 11)
-    [cost(1)],                         // Skill requirement for 2 level (skill ID = 12)
-    [cost(1)]                          // Skill requirement for 3 level (skill ID = 13)
+combatReflexes2 = skill([11, 12, 13], [
+    [cost(1)],
+    [cost(1)],
+    [cost(1)]
+], [
+     [changeVar(1, 1)], // On skill learn will increase the game variable 1 by 1.
+     [changeVar(1, 2)], // On skill upgrade to second level will increase the game variable 1 by 2.
+     [changeVar(1, 3)]  // On skill upgrade to third  level will increase the game variable 1 by 3.
 ]);
 dualAttack2 = skill([3], [
-    [cost(1), skillReq(combatReflexes2, 1)] // Skill cost 1 skill point and requires 'combatReflexes' skill
-]);                                        // learned at 1 level. Level can be skipped, see next skill.
+    [cost(1), skillReq(combatReflexes2, 1)]
+]);
 doubleAttack2 = skill([4], [
-    [cost(1), skillReq(combatReflexes2), lvl(3)] // Same as above, but can be learned by heroes with level 3 or above.
+    [cost(1), skillReq(combatReflexes2), lvl(3)]
 ]);
 tripleAttack2 = skill([5], [
-    [cost(1), lvl(5), skillReq(combatReflexes2, 2), skillReq(doubleAttack2)] // Requires 2 skills.
+    [cost(1), lvl(5), skillReq(combatReflexes2, 2), skillReq(doubleAttack2)]
 ]);
 berserkerDance2 = skill([14], [
     [cost(3), skillReq(tripleAttack2)]
