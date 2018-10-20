@@ -63,6 +63,9 @@
  * - Possibility to add trees during the game.
  * - Added API section.
  *
+ * Version 1.2:
+ * - Added item requirement.
+ *
  */
 
 //=============================================================================
@@ -277,6 +280,11 @@ class Requirement {
  */
 class Cost extends Requirement {
     constructor(price) {
+		if (!price)
+			price = 1;
+		else if (price < 1)
+			throw new RangeError("Price must be an integer greater than 0.");
+		
         super("points");
         this.price = price;
     }
@@ -300,6 +308,11 @@ class Cost extends Requirement {
  */
 class TreePointsRequirement extends Requirement {
     constructor(points) {
+		if (!points)
+			points = 1;
+		else if (points < 1)
+			throw new RangeError("Points must be an integer greater than 0.");
+		
         super("tree_points");
         this.points = points;
     }
@@ -322,6 +335,14 @@ class SkillRequirement extends Requirement {
      * @param lvl Skill level.
      */
     constructor(skill, lvl) {
+		if (!(skill instanceof Skill))
+			throw new TypeError("Given object is not a Skill (TreeObject).");
+
+		if (!lvl)
+			lvl = 1;
+		else if (lvl < 1)
+			throw new RangeError("Skill level must be an integer greater than 0.");
+		
         super("tree_skill_level");
         this.lvls = skill.lvls;
         this.lvl = lvl;
@@ -329,6 +350,7 @@ class SkillRequirement extends Requirement {
 
     meets(actor, tree) {
         var res = false;
+
         for (var i = this.lvl - 1; i < this.lvls.length; i++)
             res |= actor.hasSkill(this.lvls[i]);
 
@@ -341,6 +363,58 @@ class SkillRequirement extends Requirement {
 }
 
 /**
+ * Party should has some items.
+ */
+class ItemRequirement extends Requirement {
+    /**
+	 * @param dataClass 'item', 'weapon' or 'armor'.
+	 * @param itemId Item ID.
+	 * @param amount Amount of items needed to learn the skill. Default value = 1.
+     */
+    constructor(dataClass, itemId, amount) {
+		if (dataClass != 'item' && dataClass != 'weapon' && dataClass != 'armor') {
+			throw new TypeError("Illegal item type. Expected 'item', 'weapon' or 'armor', but was " +
+				this.dataClass + ".");
+		}
+
+		if (!amount)
+			amount = 1;
+		else if (amount < 1)
+			throw new RangeError("Item amount must be an integer greater than 0.");
+		
+        super("item");
+        this.dataClass = dataClass;
+        this.itemId = itemId;
+        this.amount = amount;
+    }
+
+    meets(actor, tree) {
+        return $gameParty.numItems(this.item()) >= this.amount;
+    }
+
+    use(actor, tree) {
+        $gameParty.gainItem(this.item(), -this.amount);
+    }
+
+    text() {
+        return this.item().name + " x" + this.amount;
+    }
+	
+	item() {
+		if (this.dataClass = 'item') {
+			return $dataItems[this.itemId];
+		} else if (this.dataClass = 'weapon') {
+			return $dataWeapons[this.itemId];
+		} else if (this.dataClass = 'armor') {
+			return $dataArmors[this.itemId];
+		}
+
+		throw new TypeError("Illegal item type. Expected 'item', 'weapon' or 'armor', but was " +
+			this.dataClass + ".");
+	}
+}
+
+/**
  * Character should have high level to meet this requirement.
  */
 class LevelRequirement extends Requirement {
@@ -348,6 +422,9 @@ class LevelRequirement extends Requirement {
      * @param lvl Hero level.
      */
     constructor(lvl) {
+		if (!lvl || lvl < 2)
+			throw new RangeError("Hero level must be an integer greater than 1.");
+		
         super("actor_level");
         this.lvl = lvl;
     }
@@ -383,10 +460,21 @@ function treePoints(points) {
  * Character should know skill from the tree at some level.
  *
  * @param skill Skill tree object.
- * @param lvl Skill level.
+ * @param lvl Skill level. Default value = 1.
  */
 function skillReq(skill, lvl) {
-    return new SkillRequirement(skill, lvl ? lvl : 1);
+    return new SkillRequirement(skill, lvl);
+}
+
+/**
+ * Party should has some items.
+ *
+ * @param dataClass 'item', 'weapon' or 'armor'.
+ * @param itemId Item ID.
+ * @param amount Amount of items needed to learn the skill. Default value = 1.
+ */
+function itemReq(dataClass, itemId, amount) {
+	return new ItemRequirement(dataClass, itemId, amount);
 }
 
 /**
@@ -480,7 +568,7 @@ tripleAttack = skill([5], [
     [cost(1), lvl(5), skillReq(combatReflexes, 2), skillReq(doubleAttack)] // Requires 2 skills.
 ]);
 berserkerDance = skill([14], [
-    [cost(3), skillReq(tripleAttack)]
+    [cost(3), skillReq(tripleAttack), itemReq('item', 1, 2)] // Requires 2 consumable items with ID 1.
 ]);
 rampage = skill([15], [
     [cost(3), skillReq(combatReflexes, 3), treePoints(9), skillReq(berserkerDance)]
@@ -488,7 +576,7 @@ rampage = skill([15], [
 armorBreak = skill([16, 17, 18], [
     [cost(1), treePoints(5), skillReq(berserkerDance)],
     [cost(2)],
-    [cost(3)]
+    [cost(3), itemReq('item', 1, 5)]
 ]);
 
 // This skill is a single-level skill.

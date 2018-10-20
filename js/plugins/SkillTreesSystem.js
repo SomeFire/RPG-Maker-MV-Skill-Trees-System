@@ -42,6 +42,9 @@
  * - Possibility to add trees during the game.
  * - Added API section.
  *
+ * Version 1.2:
+ * - Added item requirement.
+ *
  */
 
 //=============================================================================
