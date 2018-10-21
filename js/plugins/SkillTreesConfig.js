@@ -68,6 +68,7 @@
  * - Added game variable and game switch requirements.
  * - Added on skill learn action to change game variables.
  * - Colored requirements.
+ * - Skill points can be received on level up.
  *
  */
 
@@ -76,18 +77,6 @@
 //=============================================================================
 
 var SkillTreesSystem = SkillTreesSystem || {};
-
-SkillTreesSystem.freePointsText = function() {
-    return "SP: "
-};
-
-SkillTreesSystem.treePointsText = function(tree) {
-    return "SP in " + tree.name + ": ";
-};
-
-SkillTreesSystem.requirementsText = function() {
-    return "Requirements:";
-};
 
 //=============================================================================
 // System Classes
@@ -714,6 +703,9 @@ armorBreak = skill([16, 17, 18], [
     [cost(2)],
     [cost(3), itemReq('item', 1, 5)]
 ]);
+spark = skill([10], [
+    [cost(1)]
+])
 
 
 guard2 = skill([2], [
@@ -789,7 +781,7 @@ SkillTreesSystem.actor2tree = {
             null,   null,           null,          combatReflexes,     null,       guard,           null,
             null,   null,           arrowLeft,     arrowDown,          null,       null,            null,
             null,   dualAttack,     null,          doubleAttack,       null,       null,            null,
-            null,   null,           null,          arrowDown,          null,       null,            null,
+            null,   null,           null,          arrowDown,          null,       spark,            null,
             null,   null,           null,          tripleAttack,       null,       null,            null,
             null,   null,           null,          arrowDown,          null,       null,            null,
             null,   null,           null,          berserkerDance,     null,       null,            null,

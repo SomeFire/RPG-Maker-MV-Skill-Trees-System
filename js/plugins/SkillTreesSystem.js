@@ -7,6 +7,73 @@
  *
  * @author SomeFire
  *
+ * @param ---General---
+ * @default
+ *
+ * @param Skill points per level
+ * @parent ---General---
+ * @type number
+ * @min 0
+ * @desc Amount of skill points given per level.
+ * Use 0 if you wish to have no limit.
+ * @default 0
+ *
+ * @param Trees in a row
+ * @parent ---General---
+ * @type number
+ * @min 1
+ * @desc Amount of skill trees shown at the same time on the tree select window.
+ * @default 3
+ *
+ * @param Skills in a row
+ * @parent ---General---
+ * @type number
+ * @min 1
+ * @desc Amount of skills that can be placed in a single row of the skill tree window.
+ * @default 7
+ *
+ * @param Margin for skill cursor
+ * @parent ---General---
+ * @type boolean
+ * @on Big
+ * @off Small
+ * @desc Use big cursor for skill icons with opaque background.
+ * Use small cursor for icons with transparent background.
+ * @default true
+ *
+ * @param ---Text---
+ * @default
+ *
+ * @param Button value
+ * @parent ---Text---
+ * @desc Text for menu button or other way you open skill scene.
+ * @default Skill Trees
+ *
+ * @param Earning points text
+ * @parent ---Text---
+ * @desc Text to describe how much skill points is earned.
+ * @default SP earned
+ *
+ * @param No trees text
+ * @parent ---Text---
+ * @desc Text to describe absence of any skill tree.
+ * @default No skill trees available.
+ *
+ * @param Free points text
+ * @parent ---Text---
+ * @desc Text for free skill points to show in the skill description window.
+ * @default SP:
+ *
+ * @param Tree points text
+ * @parent ---Text---
+ * @desc Text for skill points ised in the tree to show in the skill description window.
+ * @default SP in %1:
+ *
+ * @param Requirements text
+ * @parent ---Text---
+ * @desc Text for skill requirements to show in the skill description window.
+ * @default Requirements:
+ *
  * @help
  * ============================================================================
  * Introduction and Instructions
@@ -47,6 +114,7 @@
  * - Added game variable and game switch requirements.
  * - Added on skill learn action to change game variables.
  * - Colored requirements.
+ * - Skill points can be received on level up.
  *
  */
 
@@ -55,22 +123,60 @@
 //=============================================================================
 
 var SkillTreesSystem = SkillTreesSystem || {};
+SkillTreesSystem.Parameters = PluginManager.parameters('SkillTreesSystem');
 
-SkillTreesSystem.enabled = true;
-
-/** Text for the menu button. */
-SkillTreesSystem.buttonValue = 'Skill Trees';
-
-SkillTreesSystem.noTreesText = "No skill trees available.";
+/** Amount of skill points given per level. */
+SkillTreesSystem.pointsPerLevel = Number(SkillTreesSystem.Parameters['Skill points per level']);
 
 /** Amount of trees shown on the window at a time. */
-SkillTreesSystem.treeWindowMaxCols = 3;
+SkillTreesSystem.treeWindowMaxCols = Number(SkillTreesSystem.Parameters['Trees in a row']);
 
 /** Amount of skill slots in a single row. */
-SkillTreesSystem.skillWindowMaxCols = 7;
+SkillTreesSystem.skillWindowMaxCols = Number(SkillTreesSystem.Parameters['Skills in a row']);
 
 /** Use big cursor for skill icons with opaque background. Use small cursor for icons with transparent background. */
-SkillTreesSystem.skillCursorPadding = true;
+SkillTreesSystem.skillCursorMargin = eval(SkillTreesSystem.Parameters['Margin for skill cursor']);
+
+/** Text for the menu button. */
+SkillTreesSystem.buttonValue = String(SkillTreesSystem.Parameters['Button value']);
+
+/** Text to describe how much skill points is earned. */
+SkillTreesSystem._earnPointsText = String(SkillTreesSystem.Parameters['Earning points text']);
+
+/** Text used to describe absence of any skill tree. */
+SkillTreesSystem._noTreesText = String(SkillTreesSystem.Parameters['No trees text']);
+
+/** Text for free skill points to show in the skill description window. */
+SkillTreesSystem._freePointsText = String(SkillTreesSystem.Parameters['Free points text']);
+
+/** Text for skill points ised in the tree to show in the skill description window. */
+SkillTreesSystem._treePointsText = String(SkillTreesSystem.Parameters['Tree points text']);
+
+/** Text for skill requirements to show in the skill description window. */
+SkillTreesSystem._requirementsText = String(SkillTreesSystem.Parameters['Requirements text']);
+
+/**
+ * Text for free skill points to show in the skill description window.
+ */
+SkillTreesSystem.freePointsText = function() {
+    return SkillTreesSystem._freePointsText + " ";
+};
+
+/**
+ * Text for skill points ised in the tree to show in the skill description window.
+ */
+SkillTreesSystem.treePointsText = function(tree) {
+    return SkillTreesSystem._treePointsText.format(tree.name) + " ";
+};
+
+/**
+ * Text for skill requirements to show in the skill description window.
+ */
+SkillTreesSystem.requirementsText = function() {
+    return SkillTreesSystem._requirementsText;
+};
+
+SkillTreesSystem.enabled = true;
 
 SkillTreesSystem.isEnabled = function() {
     return this.enabled;
@@ -233,7 +339,7 @@ Trees_Window.prototype.makeCommandList = function() {
             for (let tree of this._actor.skillTrees.trees)
                 this.addCommand(tree.name, tree.symbol, true);
         } else
-            this.addCommand(SkillTreesSystem.noTreesText, null, false);
+            this.addCommand(SkillTreesSystem._noTreesText, null, false);
     }
 
     if (this._skillsWindow)
@@ -473,11 +579,11 @@ Skills_Window.prototype.updateCursor = function() {
     if (this.isCursorVisible()) {
         var rect = this.itemRect(this.index());
 
-        if (SkillTreesSystem.skillCursorPadding) {
+        if (SkillTreesSystem.skillCursorMargin) {
             this.setCursorRect(rect.x + this.spacing() / 2, rect.y + this.spacing() / 2,
                 rect.width + this.spacing(), rect.height + this.spacing());
         } else
-            this.setCursorRect(rect.x, rect.y, rect.width, rect.height);
+            this.setCursorRect(rect.x + this.spacing(), rect.y + this.spacing(), rect.width, rect.height);
     } else
         this.setCursorRect(0, 0, 0, 0);
 
@@ -721,6 +827,7 @@ Description_Window.prototype.drawLine = function(y) {
 };
 
 Description_Window.prototype.drawCastCost = function(skill, x, y, w) {
+    // TODO
 };
 
 Description_Window.prototype.drawRequirements = function(reqs, y) {
@@ -745,3 +852,24 @@ Description_Window.prototype.drawRequirements = function(reqs, y) {
 Description_Window.prototype.spacing = function() {
     return 12;
 };
+
+//-----------------------------------------------------------------------------
+// Game_Actor
+//
+// The game object class for an actor.
+
+SkillTreesSystem.gameActorLevelUp = Game_Actor.prototype.levelUp;
+Game_Actor.prototype.levelUp = function() {
+    SkillTreesSystem.gameActorLevelUp.call(this);
+
+    if (this.skillTrees)
+        this.skillTrees.points += SkillTreesSystem.pointsPerLevel;
+};
+
+SkillTreesSystem.gameActorDisplayLevelUp = Game_Actor.prototype.displayLevelUp;
+Game_Actor.prototype.displayLevelUp = function(newSkills) {
+    SkillTreesSystem.gameActorDisplayLevelUp.call(this, newSkills);
+
+    if (SkillTreesSystem.pointsPerLevel > 0)
+        $gameMessage.add(SkillTreesSystem.pointsPerLevel + " " + SkillTreesSystem._earnPointsText);
+}
