@@ -3,7 +3,7 @@
 //=============================================================================
 
 /*:
- * @plugindesc v1.1 Basic skill trees in a separate scene.
+ * @plugindesc v1.3 Basic skill trees in a separate scene.
  *
  * @author SomeFire
  *
@@ -115,6 +115,9 @@
  * - Added on skill learn action to change game variables.
  * - Colored requirements.
  * - Skill points can be received on level up.
+ *
+ * Version 1.3:
+ * - Loading bug fixed.
  *
  */
 
@@ -837,9 +840,9 @@ Description_Window.prototype.drawRequirements = function(reqs, y) {
         var req = reqs[i];
 
         if (req.meets(this._actor, this._tree))
-            this.changeTextColor(this.powerUpColor())
+            this.changeTextColor(this.powerUpColor());
         else
-            this.changeTextColor(this.powerDownColor())
+            this.changeTextColor(this.powerDownColor());
 
         this.drawText(req.text(), 0, y);
 
@@ -872,4 +875,162 @@ Game_Actor.prototype.displayLevelUp = function(newSkills) {
 
     if (SkillTreesSystem.pointsPerLevel > 0)
         $gameMessage.add(SkillTreesSystem.pointsPerLevel + " " + SkillTreesSystem._earnPointsText);
-}
+};
+
+//-----------------------------------------------------------------------------
+// DataManager
+//
+// Handle game loading.
+
+SkillTreesSystem.DataManagerExtractSaveContents = DataManager.extractSaveContents;
+DataManager.extractSaveContents = function(contents) {
+    SkillTreesSystem.DataManagerExtractSaveContents.call(this, contents);
+
+    for (let actor of $gameActors._data) {
+        if (!actor || !actor.skillTrees)
+            continue;
+
+        let jsonTrees = actor.skillTrees;
+        let trees = new SkillTrees();
+
+        actor.skillTrees = trees;
+
+        trees.points = jsonTrees.points;
+
+        SkillTreesSystem.loadTrees(jsonTrees, trees);
+    }
+};
+
+/**
+ * Reconstruct JS object of Skill Trees System classes.
+ *
+ * @param jsonTrees Json object.
+ * @param trees STS object.
+ */
+SkillTreesSystem.loadTrees = function(jsonTrees, trees) {
+    if (!jsonTrees.trees)
+        return;
+
+    for (let jsonTree of jsonTrees.trees) {
+        let tree = new SkillTree(jsonTree.name, jsonTree.symbol, []);
+
+        trees.trees.push(tree);
+
+        tree.points = jsonTree.points;
+
+        SkillTreesSystem.loadSkills(jsonTree, tree);
+    }
+};
+
+/**
+ * Reconstruct JS object of Skill Trees System classes.
+ *
+ * @param jsonTree Json object.
+ * @param tree STS object.
+ */
+SkillTreesSystem.loadSkills = function(jsonTree, tree) {
+    if (!jsonTree.skills) {
+        jsonTree.skills = [];
+
+        return;
+    }
+
+    for (let jsonSkill of jsonTree.skills) {
+        if (jsonSkill == null)
+            tree.skills.push(null);
+        else if (jsonSkill.type === "skill") {
+            let skill = new Skill(jsonSkill.lvls);
+
+            skill.level = jsonSkill.level;
+            SkillTreesSystem.loadRequirements(jsonSkill, skill);
+            SkillTreesSystem.loadOnLearnActions(jsonSkill, skill);
+
+            tree.skills.push(skill);
+        } else
+            tree.skills.push(new Arrow(jsonSkill._iconId));
+    }
+};
+
+/**
+ * Reconstruct JS object of Skill Trees System classes.
+ *
+ * @param jsonSkill Json object.
+ * @param skill STS object.
+ */
+SkillTreesSystem.loadRequirements = function(jsonSkill, skill) {
+    if (!jsonSkill.reqs) {
+        jsonSkill.reqs = [];
+
+        return;
+    }
+
+    for (let jsonReqArr of jsonSkill.reqs) {
+        let reqArr = [];
+
+        for (let jsonReq of jsonReqArr)
+            reqArr.push(SkillTreesSystem.loadRequirement(jsonReq));
+
+        skill.reqs.push(reqArr);
+    }
+};
+
+/**
+ * Reconstruct JS object of Skill Trees System classes.
+ *
+ * @param jsonSkill Json object.
+ * @param skill STS object.
+ */
+SkillTreesSystem.loadOnLearnActions = function(jsonSkill, skill) {
+    if (!jsonSkill.learnActions) {
+        jsonSkill.learnActions = [];
+
+        return;
+    }
+
+    for (let jsonOlaArr of jsonSkill.learnActions) {
+        let olaArr = [];
+
+        for (let jsonOla of jsonOlaArr)
+            olaArr.push(SkillTreesSystem.loadOnLearnAction(jsonOla));
+
+        skill.learnActions.push(olaArr);
+    }
+};
+
+/**
+ * Reconstruct JS object of Skill Trees System classes.
+ *
+ * @param jsonReq Json object.
+ * @return STS object.
+ */
+SkillTreesSystem.loadRequirement = function (jsonReq) {
+    switch(jsonReq.type) {
+        case "points":
+            return new Cost(jsonReq.price);
+        case "tree_points":
+            return new TreePointsRequirement(jsonReq.points);
+        case "tree_skill_level":
+            return new SkillRequirement(jsonReq.lvls, jsonReq.lvl);
+        case "item":
+            return new ItemRequirement(jsonReq.dataClass, jsonReq.itemId, jsonReq.amount);
+        case "actor_level":
+            return new LevelRequirement(jsonReq.lvl);
+        case "game_variable":
+            return new VariableRequirement(jsonReq.varId, jsonReq.intVal);
+        case "game_switch":
+            return new SwitchRequirement(jsonReq.switchId, jsonReq.val);
+    }
+};
+
+/**
+ * Reconstruct JS object of Skill Trees System classes.
+ *
+ * @param jsonOla Json object.
+ * @return STS object.
+ */
+SkillTreesSystem.loadOnLearnAction = function(jsonOla) {
+    switch (jsonOla.type) {
+        case "game_variable":
+            return new OnLearnChangeVariable(jsonOla.varId, jsonOla.inc)
+    }
+};

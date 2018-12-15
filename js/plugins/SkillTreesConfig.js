@@ -3,7 +3,7 @@
 //=============================================================================
 
 /*:
- * @plugindesc v1.1 Basic skill trees in a separate scene.
+ * @plugindesc v1.3 Basic skill trees in a separate scene.
  *
  * @author SomeFire
  *
@@ -70,6 +70,9 @@
  * - Colored requirements.
  * - Skill points can be received on level up.
  *
+ * Version 1.3:
+ * - Loading bug fixed.
+ *
  */
 
 //=============================================================================
@@ -87,6 +90,9 @@ var SkillTreesSystem = SkillTreesSystem || {};
  * Skill object and arrow object.
  */
 class TreeObject {
+    constructor(type) {
+        this.type = type;
+    }
     iconId() {}
     isEnabled(actor, tree) {}
 }
@@ -97,10 +103,17 @@ class TreeObject {
 class Skill extends TreeObject {
     /**
      * @param levels Array of skill IDs.
-     * @param requirements Array of requirements for every skill level.
+     * @param requirements Array of requirements for every skill level (array of arrays of requirements).
+     * @param onLearnActions Array of onlearn actions for every skill level (array of arrays of actions).
      */
     constructor(levels, requirements, onLearnActions) {
-        super();
+        if (!requirements)
+            requirements = [];
+
+        if (!onLearnActions)
+            onLearnActions = [];
+
+        super("skill");
         this.lvls = levels;
         this.level = 0;
         this.reqs = requirements;
@@ -195,7 +208,7 @@ class Arrow extends TreeObject {
      * @param iconId Icon ID from the IconSet image.
      */
     constructor(iconId) {
-        super();
+        super("arrow");
         this._iconId = iconId;
     }
 
@@ -341,7 +354,7 @@ class SkillRequirement extends Requirement {
      * @param lvl Skill level.
      */
     constructor(skill, lvl) {
-		if (!(skill instanceof Skill))
+		if (!(skill instanceof Skill) && !(skill instanceof Array))
 			throw new TypeError("Given object is not a Skill (TreeObject).");
 
 		if (!lvl)
@@ -350,7 +363,7 @@ class SkillRequirement extends Requirement {
 			throw new RangeError("Skill level must be an integer greater than 0.");
 		
         super("tree_skill_level");
-        this.lvls = skill.lvls;
+        this.lvls = (skill instanceof Skill) ? skill.lvls : skill;
         this.lvl = lvl;
     }
 
@@ -378,9 +391,9 @@ class ItemRequirement extends Requirement {
 	 * @param amount Amount of items needed to learn the skill. Default value = 1.
      */
     constructor(dataClass, itemId, amount) {
-		if (dataClass != 'item' && dataClass != 'weapon' && dataClass != 'armor') {
+		if (dataClass !== 'item' && dataClass !== 'weapon' && dataClass !== 'armor') {
 			throw new TypeError("Illegal item type. Expected 'item', 'weapon' or 'armor', but was " +
-				this.dataClass + ".");
+				dataClass + ".");
 		}
 
 		if (!amount)
@@ -450,7 +463,7 @@ class LevelRequirement extends Requirement {
 class VariableRequirement extends Requirement {
     /**
      * @param variableId Game variable ID.
-     * @param intValue Game variable should be greater or equal to this value to meet requirement.
+     * @param intVal Game variable should be greater or equal to this value to meet requirement.
      */
     constructor(variableId, intVal) {
         if (!variableId)
@@ -508,6 +521,16 @@ class SwitchRequirement extends Requirement {
  * Interface for actions after skill learn. See implementations.
  */
 class OnLearnAction {
+    /**
+     * @param type Requirement type.
+     */
+    constructor(type) {
+        this.type = type;
+    }
+
+    /**
+     * Will be called when actor learns appropriate level of skill.
+     */
     action() {}
 }
 
@@ -526,7 +549,7 @@ class OnLearnChangeVariable extends OnLearnAction {
         if (!increment)
             increment = 1;
 
-        super();
+        super("game_variable");
         this.varId = variableId;
         this.inc = increment;
     }
@@ -600,8 +623,8 @@ function varReq(variableId, intValue) {
  * Boolean false - if game switch should be unset to meet requirement.
  * Default value = true.
  */
-function switchReq(switchId, value) {
-    return new SwitchRequirement(switchId, value);
+function switchReq(switchId, val) {
+    return new SwitchRequirement(switchId, val);
 }
 
 /**
@@ -705,7 +728,7 @@ armorBreak = skill([16, 17, 18], [
 ]);
 spark = skill([10], [
     [cost(1)]
-])
+]);
 
 
 guard2 = skill([2], [
