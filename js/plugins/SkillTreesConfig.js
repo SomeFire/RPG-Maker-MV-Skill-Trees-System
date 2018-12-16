@@ -3,7 +3,7 @@
 //=============================================================================
 
 /*:
- * @plugindesc v1.3 Basic skill trees in a separate scene.
+ * @plugindesc v1.4 Experimental. Basic skill trees in a separate scene.
  *
  * @author SomeFire
  *
@@ -18,7 +18,8 @@
  * System structure:
  * a) Actor have SkillTrees object.
  * b) SkillTrees object have tree objects and skill points to spend for actor.
- * c) Tree object have name, symbol, spent points and array of skill objects.
+ * c) Tree object have name, symbol, class id, spent points and array of
+ *    skill objects.
  * d) Skill object consist of 1 or more game skills and their requirements,
  *    which means it have an array of skill IDs and array of requirement arrays.
  *
@@ -29,21 +30,23 @@
  * Because it is Java*Cough*Script you should create trees in the end of file.
  *
  * ----------------------------------------------------------------------------
- * How to bind group of trees to the actor:
- *     actor.setSkillTrees(skillTreesObjectId);
- *
- *  skillTreesObjectId - ID of SkillTrees object. Usually the same as actor ID.
- *   You need to create trees in the SkillTreesSystem.actor2tree field.
- * ----------------------------------------------------------------------------
  * How to add tree:
  *     actor.addTree(skillTree);
  *
  *  skillTree - SkillTree object. You need to create it in the end of this file.
  * ----------------------------------------------------------------------------
  * How to add skill points:
- *     actor.addTreesPoints(points);
+ *     actor.addTreesPoints(points, classId);
  *
  *  points - number of points you want to give to the actor.
+ *  classId - what actor's class will receive points. Optional parameter - will
+ *      use single pool or current base class by default.
+ *
+ * How to get skill points:
+ *     actor.getTreesPoints(skillTree);
+ *
+ *  skillTree - for which tree you want to know points. Optional parameter -
+ *      will return points for single pool or current base class by default.
  *
  * ============================================================================
  * Terms of use
@@ -72,6 +75,10 @@
  *
  * Version 1.3:
  * - Loading bug fixed.
+ *
+ * Version 1.4:
+ * - Separate Points Pools for class trees.
+ * - YEP Job Points and class plugins integration.
  *
  */
 
@@ -107,12 +114,6 @@ class Skill extends TreeObject {
      * @param onLearnActions Array of onlearn actions for every skill level (array of arrays of actions).
      */
     constructor(levels, requirements, onLearnActions) {
-        if (!requirements)
-            requirements = [];
-
-        if (!onLearnActions)
-            onLearnActions = [];
-
         super("skill");
         this.lvls = levels;
         this.level = 0;
@@ -171,12 +172,21 @@ class Skill extends TreeObject {
 
         n = Math.min(this.lvls.length, this.level + n);
 
-        if (this.level > 0)
-            actor.forgetSkill(this.lvls[this.level - 1]);
+        this.forget(actor);
 
         this.level = n;
 
         actor.learnSkill(this.lvls[this.level - 1]);
+    }
+
+    forget(actor) {
+        if (this.level > 0)
+            actor.forgetSkill(this.lvls[this.level - 1]);
+    }
+
+    relearn(actor) {
+        if (this.level > 0)
+            actor.learnSkill(this.lvls[this.level - 1]);
     }
 
     currentLevel() {
@@ -197,6 +207,14 @@ class Skill extends TreeObject {
 
     onLearnActions() {
         return (!this.learnActions || this.level === this.lvls.length) ? null : this.learnActions[this.level];
+    }
+
+    clone() {
+        var copy = new Skill(this.lvls, this.reqs, this.onLearnActions);
+
+        copy.level = this.level;
+
+        return copy;
     }
 }
 
@@ -235,6 +253,30 @@ class SkillTree {
         this.symbol = symbol;
         this.skills = treeObjs;
         this.points = 0;
+        this._classId = 0;
+    }
+
+    setClassId(clsId) {
+        this._classId = clsId;
+    }
+
+    clone() {
+        var copy = new SkillTree();
+
+        copy.name = this.name;
+        copy.symbol = this.symbol;
+        copy.points = this.points;
+        copy._classId = this._classId;
+        copy.skills = [];
+
+        this.skills.forEach(function(skill, i, arr) {
+            if (skill instanceof Skill)
+                copy.skills.push(skill.clone());
+            else
+                copy.skills.push(skill);
+        });
+
+        return copy;
     }
 }
 
@@ -251,8 +293,74 @@ class SkillTrees {
         else if (trees instanceof SkillTree)
             trees = [trees];
 
-        this.points = freePoints;
+        this.pts = [freePoints];
         this.trees = trees;
+    }
+
+    /**
+     * Must be called only inside actor.getTreesPoints() (because we can't access JP from here).
+     *
+     * @param clsId Class id.
+     * @returns {*}
+     */
+    _points(clsId) {
+        // YEP job points are given in YEP plugins
+        if (SkillTreesSystem.useJP())
+            throw new Error("SkillTrees._points must be called only inside actor.getTreesPoints().");
+
+        if (clsId == null)
+            throw new ReferenceError("Unknown source for skill trees points.");
+
+        if (!this.pts[clsId])
+            this.pts[clsId] = 0;
+
+        return this.pts[clsId];
+    }
+
+    /**
+     * Must be called only inside actor.addTreesPoints() (because we can't access JP from here).
+     *
+     * @param val Value.
+     * @param clsId Class id.
+     * @returns {*}
+     */
+    _addPoints(val, clsId) {
+        // YEP job points are given in YEP plugins
+        if (SkillTreesSystem.useJP())
+            throw new Error("SkillTrees._points must be called only inside actor.getTreesPoints().");
+
+        if (SkillTreesSystem.singlePointsPool)
+            clsId = 0;
+        else if (!clsId || clsId <= 0)
+            throw new Error("In case of separate points pool - specify class id for method SkillTrees#addPoints().");
+
+        // YEP job points are given in YEP plugins
+        if (SkillTreesSystem.useJP())
+            return;
+
+        if (this.pts[clsId])
+            this.pts[clsId] += val;
+        else
+            this.pts[clsId] = val;
+    }
+
+    setClassId(clsId) {
+        for (let tree of this.trees)
+            tree.setClassId(clsId);
+    }
+
+    clone() {
+        var copy = new SkillTrees();
+
+        for (let i = 0; i < this.pts.length; i++) {
+            copy.pts[i] = this.pts[i];
+        }
+
+        this.trees.forEach(function(tree, i, arr) {
+            copy.trees.push(tree.clone());
+        });
+
+        return copy;
     }
 }
 
@@ -309,7 +417,7 @@ class Cost extends Requirement {
     }
 
     meets(actor, tree) {
-        return actor.skillTrees.points >= this.price;
+        return actor.getTreesPoints(tree) >= this.price;
     }
 
     text() {
@@ -317,7 +425,16 @@ class Cost extends Requirement {
     }
 
     use(actor, tree) {
-        actor.skillTrees.points -= this.price;
+        let clsId = 0;
+
+        if (!SkillTreesSystem.singlePointsPool) {
+            clsId = tree._classId;
+
+            if (clsId === 0)
+                clsId = actor._classId;
+        }
+
+        actor.addTreesPoints(-this.price, clsId);
         tree.points += this.price;
     }
 }
@@ -391,10 +508,8 @@ class ItemRequirement extends Requirement {
 	 * @param amount Amount of items needed to learn the skill. Default value = 1.
      */
     constructor(dataClass, itemId, amount) {
-		if (dataClass !== 'item' && dataClass !== 'weapon' && dataClass !== 'armor') {
-			throw new TypeError("Illegal item type. Expected 'item', 'weapon' or 'armor', but was " +
-				dataClass + ".");
-		}
+		if (dataClass !== 'item' && dataClass !== 'weapon' && dataClass !== 'armor')
+			throw new TypeError("Illegal item type. Expected 'item', 'weapon' or 'armor', but was " + dataClass + ".");
 
 		if (!amount)
 			amount = 1;
@@ -650,19 +765,6 @@ function skill(skillIds, requirements, onLearnActions) {
 //=============================================================================
 
 /**
- * Setup actor's skill trees.
- *
- * @param skillTreesObjectId SkillTrees ID. Usually it is actor ID.
- * See {@link SkillTreesSystem.actor2tree}.
- */
-Game_Actor.prototype.setSkillTrees = function(skillTreesObjectId) {
-    if (!SkillTreesSystem.actor2tree[skillTreesObjectId])
-        throw new ReferenceError("No such SkillTrees object.");
-
-    this.skillTrees = SkillTreesSystem.actor2tree[skillTreesObjectId];
-};
-
-/**
  * Add a skill tree to the actor.
  *
  * @param skillTreeObject {@link SkillTree SkillTree object}.
@@ -680,16 +782,47 @@ Game_Actor.prototype.addTree = function(skillTreeObject) {
 /**
  * Give some skill points to the actor.
  *
- * @param points Amount of points to give.
+ * @param points Amount of points to give. Default value = 1.
+ * @param clsId Class id. Default value = 0 (for single pool) or actor's base class id (for separate pools).
  */
-Game_Actor.prototype.addTreesPoints = function(points) {
+Game_Actor.prototype.addTreesPoints = function(points, clsId) {
+    if (SkillTreesSystem.useJP()) {
+        this.gainJp(points, clsId);
+
+        return;
+    }
+
     if (!points)
         points = 1;
 
-    if (!this.skillTrees)
-        this.skillTrees = new SkillTrees(points);
+    if (!clsId) {
+        if (SkillTreesSystem.singlePointsPool)
+            clsId = 0;
+        else
+            clsId = this._classId;
+    }
 
-    this.skillTrees.points += points;
+    if (!this.skillTrees)
+        this.skillTrees = new SkillTrees();
+
+    this.skillTrees._addPoints(points, clsId);
+};
+
+/**
+ * Get actor's skill points.
+ *
+ * @param tree Skill tree.
+ * @return Free points, which can be spent for given tree.
+ * Optional parameter - will return points for single pool or current base class by default.
+ */
+Game_Actor.prototype.getTreesPoints = function(tree) {
+    if (SkillTreesSystem.useJP())
+        return this.jp((tree && tree._classId > 0) ? tree._classId : this._classId);
+
+    if (SkillTreesSystem.singlePointsPool)
+        return this.skillTrees._points(0);
+
+    return this.skillTrees._points((tree && tree._classId > 0) ? tree._classId : this._classId);
 };
 
 //=============================================================================
@@ -710,7 +843,7 @@ dualAttack = skill([3], [
     [cost(1), skillReq(combatReflexes, 1)] // Skill cost 1 skill point and requires 'combatReflexes' skill
 ]);                                        // learned at 1 level. Level can be skipped, see next skill.
 doubleAttack = skill([4], [
-    [cost(1), skillReq(combatReflexes), lvl(3)] // Same as above, but can be learned by heroes with level 3 or above.
+    [cost(1), lvl(3), skillReq(combatReflexes)] // Same as above, but can be learned by heroes with level 3 or above.
 ]);
 tripleAttack = skill([5], [
     [cost(1), lvl(5), skillReq(combatReflexes, 2), skillReq(doubleAttack)] // Requires 2 skills.
@@ -719,7 +852,7 @@ berserkerDance = skill([14], [
     [cost(3), skillReq(tripleAttack), itemReq('item', 1, 2)] // Requires 2 consumable items with ID 1.
 ]);
 rampage = skill([15], [
-    [cost(3), skillReq(combatReflexes, 3), treePoints(9), skillReq(berserkerDance)]
+    [cost(3), treePoints(9), skillReq(combatReflexes, 3), skillReq(berserkerDance)]
 ]);
 armorBreak = skill([16, 17, 18], [
     [cost(1), treePoints(5), skillReq(berserkerDance)],
@@ -792,11 +925,11 @@ arrowLeft = new Arrow(29);
 //=============================================================================
 
 /**
- * Contain trees setup tied to actor ID.
+ * Contain trees setup tied to actor ID. Trees will be added to actor on actor initialization.
  *
  * @type {{"1": actorId, "2": SkillTrees}}
  */
-SkillTreesSystem.actor2tree = {
+SkillTreesSystem.actor2trees = {
     1: new SkillTrees(55, // Character will have 55 skill points to spend at the begining.
         [new SkillTree('Berserk', 'berserk_tree', [
             // Null represents empty square in the skill window.
@@ -833,7 +966,7 @@ SkillTreesSystem.actor2tree = {
         ])]
     ),
     2: new SkillTrees(55,
-        [new SkillTree('Berserk', 'berserk_tree', [
+        [new SkillTree('Berserk', 'berserk_tree2', [
             null,   null,           null,          combatReflexes2,     null,       guard2,           null,
             null,   null,           arrowLeft,     arrowDown,          null,       null,            null,
             null,   dualAttack2,     null,          doubleAttack2,       null,       null,            null,
@@ -856,8 +989,6 @@ SkillTreesSystem.actor2tree = {
 function _sample_sameTreeSetupForDifferentActors() {
     return new SkillTrees(55,
         [new SkillTree('Same Trees 1', 'same_trees_1', [
-            // Null represents empty square in the skill window.
-            // Arrow points from one skill to another.
             null,   null,           null,          combatReflexes,     null,       guard,           null,
             null,   null,           arrowLeft,     arrowDown,          null,       null,            null,
             null,   dualAttack,     null,          doubleAttack,       null,       null,            null,
@@ -891,7 +1022,7 @@ function _sample_sameTreeSetupForDifferentActors() {
     )
 }
 
-SkillTreesSystem.fTree = new SkillTree('Fourh Tree', 'f_tree', [
+SkillTreesSystem.separateTree = new SkillTree('Fourh Tree', 'f_tree', [
     null,   null,           null,          null,               null,       null,            null,
     null,   null,           null,          null,               null,       null,            null,
     null,   null,           null,          null,               null,       null,            null,
@@ -902,3 +1033,75 @@ SkillTreesSystem.fTree = new SkillTree('Fourh Tree', 'f_tree', [
     null,   null,           null,          null,               null,       null,            null,
     null,   null,           null,          null,               null,       null,            null,
 ]);
+
+/**
+ * Contain trees setup tied to class ID. Trees will be added to actor on class initialization.
+ *
+ * @type {{"1": classId, "2": SkillTrees}}
+ */
+SkillTreesSystem.class2trees = {
+    1: new SkillTrees(11,
+        [new SkillTree('Sample1', 'Sample1', [
+            // Null represents empty square in the skill window.
+            // Arrow points from one skill to another.
+            null,   null,           null,          combatReflexes,     null,       guard,           null,
+            null,   null,           arrowLeft,     arrowDown,          null,       null,            null,
+            null,   dualAttack,     null,          doubleAttack,       null,       null,            null,
+            null,   null,           null,          arrowDown,          null,       spark,            null,
+            null,   null,           null,          tripleAttack,       null,       null,            null,
+            null,   null,           null,          arrowDown,          null,       null,            null,
+            null,   null,           null,          berserkerDance,     null,       null,            null,
+            null,   null,           null,          arrowDown,          arrowRight, null,            null,
+            null,   null,           null,          rampage,            null,       armorBreak,      null,
+        ]), new SkillTree('Sample11', 'Sample11', [
+            null,   null,           null,          combatReflexes,     null,       null,            null,
+            null,   null,           arrowLeft,     arrowDown,          null,       null,            null,
+            null,   dualAttack,     null,          doubleAttack,       null,       null,            null,
+            null,   null,           null,          arrowDown,          null,       null,            null,
+            null,   null,           null,          tripleAttack,       null,       null,            null,
+            null,   null,           null,          arrowDown,          null,       null,            null,
+            null,   null,           null,          berserkerDance,     null,       null,            null,
+            null,   null,           null,          arrowDown,          null,       null,            null,
+            null,   null,           null,          rampage,            null,       null,            null,
+        ])]
+    ),
+    2:  new SkillTrees(12,
+        [new SkillTree('Sample2', 'Sample2', [
+            null,   null,           null,          null,               null,       guard,           null,
+            null,   null,           null,          null,               null,       null,            null,
+            null,   null,           null,          null,               null,       null,            null,
+            null,   null,           null,          null,               null,       armorBreak,      null,
+            null,   null,           null,          null,               null,       null,            null,
+            null,   null,           null,          null,               null,       null,            null,
+            null,   null,           null,          null,               null,       null,            null,
+            null,   null,           null,          null,               null,       null,            null,
+            null,   null,           null,          null,               null,       null,            null,
+        ])]
+    ),
+    3:  new SkillTrees(13,
+        [new SkillTree('Sample3', 'Sample3', [
+            null,   null,           null,          null,               null,       guard,           null,
+            null,   null,           null,          null,               null,       null,            null,
+            null,   null,           null,          null,               null,       null,            null,
+            null,   null,           null,          null,               null,       armorBreak,      null,
+            null,   null,           null,          null,               null,       null,            null,
+            null,   null,           null,          null,               null,       null,            null,
+            null,   null,           null,          null,               null,       null,            null,
+            null,   null,           null,          null,               null,       null,            null,
+            null,   null,           null,          null,               null,       null,            null,
+        ])]
+    ),
+    4:  new SkillTrees(14,
+        [new SkillTree('Sample4', 'Sample4', [
+            null,   null,           null,          null,               null,       guard,           null,
+            null,   null,           null,          null,               null,       null,            null,
+            null,   null,           null,          null,               null,       null,            null,
+            null,   null,           null,          null,               null,       armorBreak,      null,
+            null,   null,           null,          null,               null,       null,            null,
+            null,   null,           null,          null,               null,       null,            null,
+            null,   null,           null,          null,               null,       null,            null,
+            null,   null,           null,          null,               null,       null,            null,
+            null,   null,           null,          null,               null,       null,            null,
+        ])]
+    )
+};
