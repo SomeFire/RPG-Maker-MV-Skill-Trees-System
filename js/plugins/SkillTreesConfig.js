@@ -1041,7 +1041,7 @@ SkillTreesSystem.separateTree = new SkillTree('Fourh Tree', 'f_tree', [
  */
 SkillTreesSystem.class2trees = {
     1: new SkillTrees(11,
-        [new SkillTree('Sample1', 'Sample1', [
+        [new SkillTree('Class 1', 'Class 1', [
             // Null represents empty square in the skill window.
             // Arrow points from one skill to another.
             null,   null,           null,          combatReflexes,     null,       guard,           null,
@@ -1053,7 +1053,7 @@ SkillTreesSystem.class2trees = {
             null,   null,           null,          berserkerDance,     null,       null,            null,
             null,   null,           null,          arrowDown,          arrowRight, null,            null,
             null,   null,           null,          rampage,            null,       armorBreak,      null,
-        ]), new SkillTree('Sample11', 'Sample11', [
+        ]), new SkillTree('Class 11', 'Class 11', [
             null,   null,           null,          combatReflexes,     null,       null,            null,
             null,   null,           arrowLeft,     arrowDown,          null,       null,            null,
             null,   dualAttack,     null,          doubleAttack,       null,       null,            null,
@@ -1066,7 +1066,7 @@ SkillTreesSystem.class2trees = {
         ])]
     ),
     2:  new SkillTrees(12,
-        [new SkillTree('Sample2', 'Sample2', [
+        [new SkillTree('Class 2', 'Class 2', [
             null,   null,           null,          null,               null,       guard,           null,
             null,   null,           null,          null,               null,       null,            null,
             null,   null,           null,          null,               null,       null,            null,
@@ -1079,7 +1079,7 @@ SkillTreesSystem.class2trees = {
         ])]
     ),
     3:  new SkillTrees(13,
-        [new SkillTree('Sample3', 'Sample3', [
+        [new SkillTree('Class 3', 'Class 3', [
             null,   null,           null,          null,               null,       guard,           null,
             null,   null,           null,          null,               null,       null,            null,
             null,   null,           null,          null,               null,       null,            null,
@@ -1092,7 +1092,7 @@ SkillTreesSystem.class2trees = {
         ])]
     ),
     4:  new SkillTrees(14,
-        [new SkillTree('Sample4', 'Sample4', [
+        [new SkillTree('Class 4', 'Class 4', [
             null,   null,           null,          null,               null,       guard,           null,
             null,   null,           null,          null,               null,       null,            null,
             null,   null,           null,          null,               null,       null,            null,

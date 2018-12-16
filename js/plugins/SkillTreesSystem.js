@@ -884,8 +884,6 @@ Description_Window.prototype.drawActorTreePoints = function(actor, tree, x, y, w
 };
 
 /**
- * I don't know why this method
- *
  * @param y Text line where horizontal line should be drawn.
  */
 Description_Window.prototype.drawLine = function(y) {
@@ -1115,22 +1113,23 @@ SkillTreesSystem.hideTrees = function(actor, classId, treesSymbols) {
 };
 
 SkillTreesSystem.initHiddenSkillTrees = function(actor, classId) {
-    if (!actor.hiddenTrees[classId]) {
+    if (actor.hiddenTrees[classId])
+        return;
+
+    actor.hiddenTrees[classId] = [];
+
+    let skillTrees = SkillTreesSystem.class2trees[classId];
+
+    if (skillTrees) {
+        skillTrees.setClassId(classId);
+
+        skillTrees = skillTrees.clone();
+
+        actor.skillTrees.pts[classId] = skillTrees.pts[0];
+
+        actor.hiddenTrees[classId] = skillTrees.clone().trees;
+    } else
         actor.hiddenTrees[classId] = [];
-
-        let skillTrees = SkillTreesSystem.class2trees[classId];
-
-        if (skillTrees) {
-            skillTrees.setClassId(classId);
-
-            skillTrees = skillTrees.clone();
-
-            actor.skillTrees.pts[classId] = skillTrees.pts[0];
-
-            actor.hiddenTrees[classId] = skillTrees.clone().trees;
-        } else
-            actor.hiddenTrees[classId] = [];
-    }
 };
 
 SkillTreesSystem.activateHiddenTrees = function (actor, classId) {
@@ -1168,6 +1167,8 @@ DataManager.extractSaveContents = function(contents) {
         trees.pts = jsonTrees.pts;
 
         SkillTreesSystem.loadTrees(jsonTrees, trees);
+
+        SkillTreesSystem.loadHiddenTrees(actor);
     }
 };
 
@@ -1304,4 +1305,40 @@ SkillTreesSystem.loadOnLearnAction = function(jsonOla) {
         case "game_variable":
             return new OnLearnChangeVariable(jsonOla.varId, jsonOla.inc)
     }
+};
+
+/**
+ * Reconstruct JS object of Skill Trees System classes.
+ *
+ * @param actor Actor.
+ */
+SkillTreesSystem.loadHiddenTrees = function(actor) {
+    if (!actor.hiddenTrees)
+        return;
+
+    let hiddenTrees = {};
+
+    for (let k in actor.hiddenTrees) {
+        let jsonTrees = actor.hiddenTrees[k];
+
+        if (!jsonTrees)
+            continue;
+
+        let trees = [];
+
+        for (let jsonTree of jsonTrees) {
+            let tree = new SkillTree(jsonTree.name, jsonTree.symbol, []);
+
+            trees.push(tree);
+
+            tree.points = jsonTree.points;
+            tree._classId = jsonTree._classId;
+
+            SkillTreesSystem.loadSkills(jsonTree, tree);
+        }
+
+        hiddenTrees[k] = trees;
+    }
+
+    actor.hiddenTrees = hiddenTrees;
 };
