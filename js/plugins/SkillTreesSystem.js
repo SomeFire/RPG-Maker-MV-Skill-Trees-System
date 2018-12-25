@@ -803,7 +803,7 @@ Description_Window.prototype.setActor = function(actor) {
     }
 };
 
-Description_Window.prototype.showDescription = function (tree, skill) {
+Description_Window.prototype.showDescription = function(tree, skill) {
     this._tree = tree;
     this._skill = skill;
     this.refresh();
@@ -1132,7 +1132,7 @@ SkillTreesSystem.initHiddenSkillTrees = function(actor, classId) {
         actor.hiddenTrees[classId] = [];
 };
 
-SkillTreesSystem.activateHiddenTrees = function (actor, classId) {
+SkillTreesSystem.activateHiddenTrees = function(actor, classId) {
     for (let tree of actor.hiddenTrees[classId]) {
         actor.skillTrees.trees.push(tree);
 
@@ -1275,7 +1275,7 @@ SkillTreesSystem.loadOnLearnActions = function(jsonSkill, skill) {
  * @param jsonReq Json object.
  * @return STS object.
  */
-SkillTreesSystem.loadRequirement = function (jsonReq) {
+SkillTreesSystem.loadRequirement = function(jsonReq) {
     switch(jsonReq.type) {
         case "points":
             return new Cost(jsonReq.price);
@@ -1341,4 +1341,97 @@ SkillTreesSystem.loadHiddenTrees = function(actor) {
     }
 
     actor.hiddenTrees = hiddenTrees;
+};
+
+SkillTreesSystem.GameBatlerUseItem = Game_Battler.prototype.useItem;
+Game_Battler.prototype.useItem = function(item) {
+    SkillTreesSystem.GameBatlerUseItem.call(this, item);
+
+    if (item.meta.resetSkillTrees)
+        SkillTreesSystem.resetSkillTrees(this, item);
+};
+
+/**
+ * @param actor Actor.
+ * @param item Item.
+ */
+SkillTreesSystem.resetSkillTrees = function(actor, item) {
+    if (!actor.skillTrees)
+        return;
+
+    if (item.meta.resetSkillTrees === "all") {
+        if (!SkillTreesSystem.singlePointsPool) {
+            console.warn("Detected try to reset skills for separate pools as single pool. " +
+                "Use Single Points Pool or don't use `all` command to reset skills.");
+
+            return;
+        }
+
+        let points = 0;
+
+        for (let tree of actor.skillTrees.trees)
+            points += SkillTreesSystem.resetSkillTree(actor, tree);
+
+        for (let k in actor.hiddenTrees) {
+            if (!actor.hiddenTrees[k])
+                continue;
+
+            for (let tree of actor.hiddenTrees[k])
+                points += SkillTreesSystem.resetSkillTree(actor, tree);
+        }
+
+        actor.addTreesPoints(points, 0);
+    } else if (item.meta.resetSkills >= 0) {
+        for (let tree of actor.skillTrees.trees) {
+            if (tree._classId === 0 || (item.meta.resetSkills > 0 && tree._classId !== item.meta.resetSkills))
+                continue;
+
+            let points = SkillTreesSystem.resetSkillTree(actor, tree);
+
+            if (points > 0)
+                actor.addTreesPoints(points, tree._classId);
+        }
+
+        for (let k in actor.hiddenTrees) {
+            if (!actor.hiddenTrees[k])
+                continue;
+
+            for (let tree of actor.hiddenTrees[k]) {
+                let points = SkillTreesSystem.resetSkillTree(actor, tree);
+
+                if (points > 0)
+                    actor.addTreesPoints(points, tree._classId);
+            }
+        }
+    }
+};
+
+/**
+ * Reset actor skills for given tree.
+ *
+ * @param actor Actor.
+ * @param tree Skill Tree object.
+ * @return {number} Cost for reset skills.
+ */
+SkillTreesSystem.resetSkillTree = function(actor, tree) {
+    let points = 0;
+
+    for (let skill of tree.skills) {
+        if (!skill || skill.type !== "skill" || skill.level === 0)
+            continue;
+
+        for (let i = 0; i < skill.level; i++) {
+            for (let req of skill.reqs[i]) {
+                if (req.type === "points")
+                    points += req.price;
+            }
+        }
+
+        skill.forget(actor);
+        skill.level = 0;
+    }
+
+    tree.points = 0;
+
+    return points;
 };
