@@ -1381,9 +1381,17 @@ SkillTreesSystem.resetSkillTrees = function(actor, item) {
         }
 
         actor.addTreesPoints(points, 0);
-    } else if (item.meta.resetSkills >= 0) {
+    } else {
+        let clsId = Number(item.meta.resetSkillTrees);
+
+        if (clsId < 0) {
+            console.warn("Unexpected class id to reset skills.");
+
+            return;
+        }
+
         for (let tree of actor.skillTrees.trees) {
-            if (tree._classId === 0 || (item.meta.resetSkills > 0 && tree._classId !== item.meta.resetSkills))
+            if (tree._classId === 0 || (clsId > 0 && tree._classId !== clsId))
                 continue;
 
             let points = SkillTreesSystem.resetSkillTree(actor, tree);
