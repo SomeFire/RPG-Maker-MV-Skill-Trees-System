@@ -898,8 +898,6 @@ Description_Window.prototype.drawCastCost = function(skill, x, y, w) {
 };
 
 Description_Window.prototype.drawRequirements = function(reqs, y) {
-    var color = this.textColor();
-
     for (var i = 0; i < reqs.length; i++) {
         var req = reqs[i];
 
@@ -913,7 +911,7 @@ Description_Window.prototype.drawRequirements = function(reqs, y) {
         y += this.lineHeight();
     }
 
-    this.changeTextColor(color);
+    this.changeTextColor(this.normalColor());
 };
 
 Description_Window.prototype.spacing = function() {
