@@ -148,6 +148,10 @@
  * - Separate Points Pools for class trees.
  * - YEP Job Points and class plugins integration.
  *
+ * Version 1.5:
+ * - Ability to reset skill trees during the game.
+ * - bugfixes.
+ *
  */
 
 //=============================================================================
