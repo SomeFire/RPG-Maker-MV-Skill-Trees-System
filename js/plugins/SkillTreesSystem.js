@@ -90,7 +90,7 @@
  * @type boolean
  * @on Yes
  * @off No
- * @desc Use JP for skill trees instead of skill tree points?
+ * @desc Use JP for skill trees instead of skill tree points? Disables Single Points Pool.
  * NO - false     YES - true
  * @default false
  *
@@ -240,8 +240,10 @@ var Yanfly = Yanfly || {};
 SkillTreesSystem._useJP = eval(SkillTreesSystem.Parameters['Use Job Points']);
 
 if (SkillTreesSystem.singlePointsPool && SkillTreesSystem._useJP) {
-    SceneManager.onError(new Error("Single Points Pool isn't available for Job Points." +
-        " Turn off Single Pool or Job Points."));
+    SkillTreesSystem.singlePointsPool = false;
+
+    console.log("Single Points Pool isn't available for Job Points." +
+        " Single Pool was disabled.");
 }
 
 SkillTreesSystem.useJP = function() {
