@@ -48,6 +48,14 @@
  *  skillTree - for which tree you want to know points. Optional parameter -
  *      will return points for single pool or current base class by default.
  *
+ * How to reset skills:
+ *     Use item with <resetSkillTrees:class_id> tag to reset trees
+ *      for specific class only, where class_id is a number of the class.
+ *     Use item with <resetSkillTrees:actor> tag to reset actor trees only
+ *      (works with single pool only).
+ *     Use item with <resetSkillTrees:all> tag to reset all trees,
+ *      including actor trees (works with single pool only).
+ *
  * ----------------------------------------------------------------------------
  *
  * If something works not as expected - check console log (F8 should open it).
@@ -262,6 +270,11 @@ class SkillTree {
         this.skills = treeObjs;
         this.points = 0;
         this._classId = 0;
+        this._actorId = 0;
+    }
+
+    setActorId(actorId) {
+        this._actorId = actorId;
     }
 
     setClassId(clsId) {
@@ -350,6 +363,11 @@ class SkillTrees {
             this.pts[clsId] += val;
         else
             this.pts[clsId] = val;
+    }
+
+    setActorId(actorId) {
+        for (let tree of this.trees)
+            tree.setActorId(actorId);
     }
 
     setClassId(clsId) {
@@ -1030,7 +1048,8 @@ function _sample_sameTreeSetupForDifferentActors() {
     )
 }
 
-SkillTreesSystem.separateTree = new SkillTree('Fourh Tree', 'f_tree', [
+// WARNING! You can't reset separate trees without single points pool.
+SkillTreesSystem.separateTree = new SkillTree('Fourth Tree', 'f_tree', [
     null,   null,           null,          null,               null,       null,            null,
     null,   null,           null,          null,               null,       null,            null,
     null,   null,           null,          null,               null,       null,            null,

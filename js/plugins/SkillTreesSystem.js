@@ -110,7 +110,7 @@
  *     actor.addTree(skillTree);
  *     actor.addTreesPoints(points, classId);
  *
- * To get free points for choosen tree:
+ * To get free points for chosen tree:
  *
  *     actor.getTreesPoints(skillTree);
  *
@@ -971,11 +971,14 @@ SkillTreesSystem.addActorTrees = function(actor) {
 
     var skillTrees = SkillTreesSystem.actor2trees[actor._actorId];
 
-    if (skillTrees)
+    if (skillTrees) {
         actor.skillTrees = skillTrees.clone();
 
-    if (!SkillTreesSystem.singlePointsPool)
-        actor.skillTrees.pts[actor._classId] = actor.skillTrees.pts[0];
+        actor.skillTrees.setActorId(actor._actorId);
+
+        if (!SkillTreesSystem.singlePointsPool)
+            actor.skillTrees.pts[actor._classId] = actor.skillTrees.pts[0];
+    }
 };
 
 SkillTreesSystem.addClassTrees = function(actor) {
@@ -1386,6 +1389,36 @@ SkillTreesSystem.resetSkillTrees = function(actor, item) {
 
             for (let tree of actor.hiddenTrees[k])
                 points += SkillTreesSystem.resetSkillTree(actor, tree);
+        }
+
+        actor.addTreesPoints(points, 0);
+    } else if (item.meta.resetSkillTrees === "actor") {
+        if (!SkillTreesSystem.singlePointsPool) {
+            console.warn("Detected try to reset skills for separate pools as single pool. " +
+                "Use Single Points Pool or don't use `all` command to reset skills.");
+
+            return;
+        }
+
+        let points = 0;
+
+        for (let tree of actor.skillTrees.trees) {
+            if (tree._actorId !== actor._actorId)
+                continue;
+
+            points += SkillTreesSystem.resetSkillTree(actor, tree);
+        }
+
+        for (let k in actor.hiddenTrees) {
+            if (!actor.hiddenTrees[k])
+                continue;
+
+            for (let tree of actor.hiddenTrees[k]) {
+                if (tree._actorId !== actor._actorId)
+                    continue;
+
+                points += SkillTreesSystem.resetSkillTree(actor, tree);
+            }
         }
 
         actor.addTreesPoints(points, 0);
