@@ -48,6 +48,10 @@
  *  skillTree - for which tree you want to know points. Optional parameter -
  *      will return points for single pool or current base class by default.
  *
+ * ----------------------------------------------------------------------------
+ *
+ * If something works not as expected - check console log (F8 should open it).
+ *
  * ============================================================================
  * Terms of use
  * ============================================================================
