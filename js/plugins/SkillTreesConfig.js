@@ -1050,7 +1050,7 @@ function _sample_sameTreeSetupForDifferentActors() {
 
 // WARNING! You can't reset separate trees without single points pool.
 SkillTreesSystem.separateTree = new SkillTree('Fourth Tree', 'f_tree', [
-    null,   null,           null,          null,               null,       null,            null,
+    null,   null,           null,          combatReflexes,     null,       null,            null,
     null,   null,           null,          null,               null,       null,            null,
     null,   null,           null,          null,               null,       null,            null,
     null,   null,           null,          null,               null,       armorBreak,      null,

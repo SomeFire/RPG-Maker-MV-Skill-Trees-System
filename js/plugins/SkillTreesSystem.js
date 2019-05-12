@@ -1032,7 +1032,7 @@ Game_Actor.prototype.changeSubclass = function(classId) {
 
     this._classChangeInProgress = false;
 
-    this.changeSkillTrees(oldClassId, classId, true);
+    this.changeSkillTrees(oldClassId, oldClassId === classId ? 0 : classId, true);
 };
 
 Game_Actor.prototype.changeSkillTrees = function(oldClassId, newClassId, isSubclass) {
