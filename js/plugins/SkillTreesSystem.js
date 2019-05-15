@@ -154,6 +154,7 @@
  *
  * Version 1.5:
  * - Ability to reset skill trees during the game.
+ * - Working message box commands for skill descriptions.
  * - bugfixes.
  *
  */
@@ -850,10 +851,9 @@ Description_Window.prototype.refresh = function() {
             this.drawText(skill.name, Window_Base._iconWidth + this.spacing(), this.lineHeight() * 5, this.windowWidth() - w - Window_Base._iconWidth - this.spacing());
             this.drawCastCost(skill, this.windowWidth() - w, this.lineHeight() * 5, w);
 
-            var desc = skill.description.split("\n");
-
-            this.drawText(desc[0], 0, this.lineHeight() * 6, fullW);
-            this.drawText(desc[1], 0, this.lineHeight() * 7, fullW);
+            this.drawTextEx(skill.description, 0, this.lineHeight() * 6);
+            this.resetFontSettings();
+            this.resetTextColor();
 
             var reqs = this._skill.requirements();
 
