@@ -95,6 +95,7 @@
  * Version 1.5:
  * - Ability to reset skill trees during the game.
  * - Working message box commands for skill descriptions.
+ * - Draw skill cost in MP and TP.
  * - bugfixes.
  *
  */

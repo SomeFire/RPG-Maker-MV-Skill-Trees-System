@@ -155,6 +155,7 @@
  * Version 1.5:
  * - Ability to reset skill trees during the game.
  * - Working message box commands for skill descriptions.
+ * - Draw skill cost in MP and TP.
  * - bugfixes.
  *
  */
@@ -849,7 +850,7 @@ Description_Window.prototype.refresh = function() {
 
             this.drawIcon(this._skill.iconId(), 0, this.lineHeight() * 5);
             this.drawText(skill.name, Window_Base._iconWidth + this.spacing(), this.lineHeight() * 5, this.windowWidth() - w - Window_Base._iconWidth - this.spacing());
-            this.drawCastCost(skill, this.windowWidth() - w, this.lineHeight() * 5, w);
+            this.drawCastCost(skill, fullW - w, this.lineHeight() * 5);
 
             this.drawTextEx(skill.description, 0, this.lineHeight() * 6);
             this.resetFontSettings();
@@ -903,8 +904,22 @@ Description_Window.prototype.drawLine = function(y) {
     this.contents.paintOpacity = 255;
 };
 
-Description_Window.prototype.drawCastCost = function(skill, x, y, w) {
-    // TODO
+Description_Window.prototype.drawCastCost = function(skill, x, y) {
+    if (!skill.mpCost && !skill.tpCost)
+        return;
+
+    let text = "";
+
+    if (skill.mpCost)
+        text += skill.mpCost + " \\C[" + (Yanfly.Param && Yanfly.Param.ColorMpCost || 23) + "]MP\\C";
+
+    if (skill.mpCost && skill.tpCost)
+        text += ", ";
+
+    if (skill.tpCost)
+        text += skill.tpCost + " \\C[" + (Yanfly.Param && Yanfly.Param.ColorTpCost || 29) + "]TP\\C";
+
+    this.drawTextEx(text, x, y);
 };
 
 Description_Window.prototype.drawRequirements = function(reqs, y) {
