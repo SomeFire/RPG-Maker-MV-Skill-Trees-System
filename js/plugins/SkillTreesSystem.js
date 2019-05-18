@@ -3,7 +3,7 @@
 //=============================================================================
 
 /*:
- * @plugindesc v1.4 Experimental. Basic skill trees in a separate scene.
+ * @plugindesc v1.5. Basic skill trees in a separate scene.
  *
  * @author SomeFire
  *
