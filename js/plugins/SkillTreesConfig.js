@@ -397,6 +397,8 @@ class SkillTrees {
 
 /**
  * Interface for skill requirements. See implementations.
+ *
+ * WARNING! Don't forget to add loading code in {@link SkillTreesSystem#loadRequirement} in the SkillTreesSystem.js.
  */
 class Requirement {
     /**
@@ -665,6 +667,8 @@ class SwitchRequirement extends Requirement {
 
 /**
  * Interface for actions after skill learn. See implementations.
+ *
+ * WARNING! Don't forget to add loading code in {@link SkillTreesSystem#loadOnLearnAction} in the SkillTreesSystem.js.
  */
 class OnLearnAction {
     /**
@@ -1066,9 +1070,12 @@ SkillTreesSystem.separateTree = new SkillTree('Fourth Tree', 'f_tree', [
     null,   null,           null,          null,               null,       null,            null,
 ]);
 
-// WARNING! You can't reset separate trees without single points pool.
-// This tree is used to check tree longer and wider than 1 page.
-// To see it normally - set SkillTreesSystem#skillWindowMaxCols to 11.
+/**
+ * WARNING! You can't reset separate trees without single points pool.
+ *
+ * This tree is used to check tree longer and wider than 1 page.
+ * To see it normally - set {@link SkillTreesSystem#skillWindowMaxCols} to 11.
+ */
 SkillTreesSystem.bigTree = new SkillTree('Big Tree (see comments)', 'big_tree', [
     null,   null,           null,          combatReflexes,     null,       guard,           null,          combatReflexes,     null,       guard,           null,
     null,   null,           arrowLeft,     arrowDown,          null,       null,            arrowLeft,     arrowDown,          null,       null,            null,
