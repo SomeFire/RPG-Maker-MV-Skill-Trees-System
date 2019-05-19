@@ -3,7 +3,7 @@
 //=============================================================================
 
 /*:
- * @plugindesc v1.5. Basic skill trees in a separate scene.
+ * @plugindesc v1.6. Basic skill trees in a separate scene.
  *
  * @author SomeFire
  *
@@ -37,7 +37,14 @@
  * @parent ---General---
  * @type number
  * @min 1
- * @desc Amount of skills that can be placed in a single row of the skill tree window.
+ * @desc Amount of skills will be contained in a single row of the skill tree window.
+ * @default 7
+ *
+ * @param Draw skills in a row
+ * @parent ---General---
+ * @type number
+ * @min 1
+ * @desc Amount of skills that will be shown in a single row of the skill tree window.
  * @default 7
  *
  * @param Margin for skill cursor
@@ -158,6 +165,9 @@
  * - Draw skill cost in MP and TP.
  * - bugfixes.
  *
+ * Version 1.6:
+ * - Ensure cursor visibility for long trees.
+ *
  */
 
 //=============================================================================
@@ -184,6 +194,9 @@ SkillTreesSystem.treeWindowMaxCols = Number(SkillTreesSystem.Parameters['Trees i
 
 /** Amount of skill slots in a single row. */
 SkillTreesSystem.skillWindowMaxCols = Number(SkillTreesSystem.Parameters['Skills in a row']);
+
+/** How many skill slots will be drawn in a single row. */
+SkillTreesSystem.skillWindowDrawCols = Number(SkillTreesSystem.Parameters['Draw skills in a row']);
 
 /** Use big cursor for skill icons with opaque background. Use small cursor for icons with transparent background. */
 SkillTreesSystem.skillCursorMargin = eval(SkillTreesSystem.Parameters['Margin for skill cursor']);
@@ -526,7 +539,7 @@ Skills_Window.prototype.maxCols = function() {
 };
 
 Skills_Window.prototype.windowWidth = function() {
-    return Window_Base._iconWidth * SkillTreesSystem.skillWindowMaxCols + this.standardPadding() * 2 - 8;
+    return Window_Base._iconWidth * SkillTreesSystem.skillWindowDrawCols + this.standardPadding() * 2;
 };
 
 Skills_Window.prototype.windowHeight = function() {
@@ -572,8 +585,8 @@ Skills_Window.prototype.itemHeight = function() {
 };
 
 Skills_Window.prototype.drawItem = function(treeObj, index) {
-    var x = Window_Base._iconWidth * (index % SkillTreesSystem.skillWindowMaxCols);
-    var y = Window_Base._iconHeight * Math.floor(index / SkillTreesSystem.skillWindowMaxCols);
+    var x = Window_Base._iconWidth * (index % SkillTreesSystem.skillWindowMaxCols) - this._scrollX;
+    var y = Window_Base._iconHeight * Math.floor(index / SkillTreesSystem.skillWindowMaxCols) - this._scrollY;
 
     this.changePaintOpacity(treeObj.isEnabled(this._actor, this._tree));
     this.drawIcon(treeObj.iconId(), x, y);
@@ -651,8 +664,8 @@ Skills_Window.prototype.itemRect = function(index) {
     var maxCols = this.maxCols();
     rect.width = this.itemWidth();
     rect.height = this.itemHeight();
-    rect.x = Window_Base._iconWidth * (index % SkillTreesSystem.skillWindowMaxCols);
-    rect.y = Window_Base._iconHeight * Math.floor(index / SkillTreesSystem.skillWindowMaxCols);
+    rect.x = Window_Base._iconWidth * (index % maxCols) - this._scrollX;
+    rect.y = Window_Base._iconHeight * Math.floor(index / maxCols) - this._scrollY;
     return rect;
 };
 
@@ -685,7 +698,7 @@ Skills_Window.prototype.updateCursor = function() {
 Skills_Window.prototype.cursorDown = function(wrap) {
     var index = this.index();
     var maxItems = this.maxItems();
-    var maxCols = this.maxCols();
+    var maxCols = SkillTreesSystem.skillWindowMaxCols;
     var index0 = this.index() % maxCols;
     var skills = this._tree.skills;
 
@@ -706,7 +719,7 @@ Skills_Window.prototype.cursorDown = function(wrap) {
 Skills_Window.prototype.cursorUp = function(wrap) {
     var index = this.index();
     var maxItems = this.maxItems();
-    var maxCols = this.maxCols();
+    var maxCols = SkillTreesSystem.skillWindowMaxCols;
     var index0bound = Math.floor(maxItems / maxCols) * maxCols;
     var index0 = this.index() % maxCols + index0bound;
     var skills = this._tree.skills;
@@ -728,7 +741,7 @@ Skills_Window.prototype.cursorUp = function(wrap) {
 Skills_Window.prototype.cursorRight = function(wrap) {
     var index = this.index();
     var maxItems = this.maxItems();
-    var maxCols = this.maxCols();
+    var maxCols = SkillTreesSystem.skillWindowDrawCols;
     var skills = this._tree.skills;
 
     if (maxCols >= 2 && (index < maxItems - 1 || (wrap && this.isHorizontal()))) {
@@ -742,7 +755,7 @@ Skills_Window.prototype.cursorRight = function(wrap) {
 Skills_Window.prototype.cursorLeft = function(wrap) {
     var index = this.index();
     var maxItems = this.maxItems();
-    var maxCols = this.maxCols();
+    var maxCols = SkillTreesSystem.skillWindowDrawCols;
     var skills = this._tree.skills;
 
     if (maxCols >= 2 && (index > 0 || (wrap && this.isHorizontal()))) {
@@ -769,8 +782,17 @@ Skills_Window.prototype.isCursorVisible = function() {
     return row >= this.topRow() && row <= this.bottomRow();
 };
 
+SkillTreesSystem.ensureCursorVisible = Window_Selectable.prototype.ensureCursorVisible;
 Skills_Window.prototype.ensureCursorVisible = function() {
-    // TODO for long skill trees
+    SkillTreesSystem.ensureCursorVisible.call(this);
+
+    var col = this.column();
+    if (col < this.rightColumn()) {
+        this.setRightColumn(col);
+    } else if (col > this.leftColumn()) {
+        this.setLeftColumn(col);
+    }
+
     /*
     var row = this.row();
     if (row < this.topRow()) {
@@ -779,6 +801,35 @@ Skills_Window.prototype.ensureCursorVisible = function() {
         this.setBottomRow(row);
     }
      */
+};
+
+Skills_Window.prototype.column = function() {
+    return this.index() % SkillTreesSystem.skillWindowMaxCols;
+};
+
+Window_Selectable.prototype.rightColumn = function() {
+    return Math.floor(this._scrollX / this.itemWidth());
+};
+
+Window_Selectable.prototype.maxRightColumn = function() {
+    return Math.max(0, this.maxCols() - SkillTreesSystem.skillWindowDrawCols);
+};
+
+Window_Selectable.prototype.setRightColumn = function(col) {
+    var scrollX = col.clamp(0, this.maxRightColumn()) * this.itemWidth();
+    if (this._scrollX !== scrollX) {
+        this._scrollX = scrollX;
+        this.refresh();
+        this.updateCursor();
+    }
+};
+
+Window_Selectable.prototype.leftColumn = function() {
+    return Math.max(0, this.rightColumn() + SkillTreesSystem.skillWindowDrawCols - 1);
+};
+
+Window_Selectable.prototype.setLeftColumn = function(row) {
+    this.setRightColumn(row - (SkillTreesSystem.skillWindowDrawCols - 1));
 };
 
 //-----------------------------------------------------------------------------
@@ -801,7 +852,7 @@ Description_Window.prototype.initialize = function(x, y) {
 };
 
 Description_Window.prototype.windowWidth = function() {
-    return Graphics.boxWidth - (Window_Base._iconWidth * SkillTreesSystem.skillWindowMaxCols + this.standardPadding() * 2 - 8);
+    return Graphics.boxWidth - (Window_Base._iconWidth * SkillTreesSystem.skillWindowDrawCols + this.standardPadding() * 2 - 8);
 };
 
 Description_Window.prototype.windowHeight = function() {

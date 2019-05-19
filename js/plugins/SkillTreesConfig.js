@@ -3,7 +3,7 @@
 //=============================================================================
 
 /*:
- * @plugindesc v1.5. Basic skill trees in a separate scene.
+ * @plugindesc v1.6. Basic skill trees in a separate scene.
  *
  * @author SomeFire
  *
@@ -97,6 +97,9 @@
  * - Working message box commands for skill descriptions.
  * - Draw skill cost in MP and TP.
  * - bugfixes.
+ *
+ * Version 1.6:
+ * - Ensure cursor visibility for long trees.
  *
  */
 
@@ -1061,6 +1064,37 @@ SkillTreesSystem.separateTree = new SkillTree('Fourth Tree', 'f_tree', [
     null,   null,           null,          null,               null,       null,            null,
     null,   null,           null,          null,               null,       null,            null,
     null,   null,           null,          null,               null,       null,            null,
+]);
+
+// WARNING! You can't reset separate trees without single points pool.
+// This tree is used to check tree longer and wider than 1 page.
+// To see it normally - set SkillTreesSystem#skillWindowMaxCols to 11.
+SkillTreesSystem.bigTree = new SkillTree('Big Tree (see comments)', 'big_tree', [
+    null,   null,           null,          combatReflexes,     null,       guard,           null,          combatReflexes,     null,       guard,           null,
+    null,   null,           arrowLeft,     arrowDown,          null,       null,            arrowLeft,     arrowDown,          null,       null,            null,
+    null,   dualAttack,     null,          doubleAttack,       null,       dualAttack,      null,          doubleAttack,       null,       null,            null,
+    null,   null,           null,          arrowDown,          null,       spark,           null,          arrowDown,          null,       spark,           null,
+    null,   null,           null,          tripleAttack,       null,       null,            null,          tripleAttack,       null,       null,            null,
+    null,   null,           null,          arrowDown,          null,       null,            null,          arrowDown,          null,       null,            null,
+    null,   null,           null,          berserkerDance,     null,       null,            null,          berserkerDance,     null,       null,            null,
+    null,   null,           null,          arrowDown,          arrowRight, null,            null,          arrowDown,          arrowRight, null,            null,
+    null,   null,           null,          rampage,            null,       armorBreak,      null,          rampage,            null,       armorBreak,      null,
+    null,   null,           arrowLeft,     arrowDown,          null,       null,            arrowLeft,     arrowDown,          null,       null,            null,
+    null,   dualAttack,     null,          doubleAttack,       null,       dualAttack,      null,          doubleAttack,       null,       null,            null,
+    null,   null,           null,          arrowDown,          null,       spark,           null,          arrowDown,          null,       spark,           null,
+    null,   null,           null,          tripleAttack,       null,       null,            null,          tripleAttack,       null,       null,            null,
+    null,   null,           null,          arrowDown,          null,       null,            null,          arrowDown,          null,       null,            null,
+    null,   null,           null,          berserkerDance,     null,       null,            null,          berserkerDance,     null,       null,            null,
+    null,   null,           null,          arrowDown,          arrowRight, null,            null,          arrowDown,          arrowRight, null,            null,
+    null,   null,           null,          rampage,            null,       armorBreak,      null,          rampage,            null,       armorBreak,      null,
+    null,   null,           arrowLeft,     arrowDown,          null,       null,            arrowLeft,     arrowDown,          null,       null,            null,
+    null,   dualAttack,     null,          doubleAttack,       null,       dualAttack,      null,          doubleAttack,       null,       null,            null,
+    null,   null,           null,          arrowDown,          null,       spark,           null,          arrowDown,          null,       spark,           null,
+    null,   null,           null,          tripleAttack,       null,       null,            null,          tripleAttack,       null,       null,            null,
+    null,   null,           null,          arrowDown,          null,       null,            null,          arrowDown,          null,       null,            null,
+    null,   null,           null,          berserkerDance,     null,       null,            null,          berserkerDance,     null,       null,            null,
+    null,   null,           null,          arrowDown,          arrowRight, null,            null,          arrowDown,          arrowRight, null,            null,
+    null,   null,           null,          rampage,            null,       armorBreak,      null,          rampage,            null,       armorBreak,      null
 ]);
 
 /**
