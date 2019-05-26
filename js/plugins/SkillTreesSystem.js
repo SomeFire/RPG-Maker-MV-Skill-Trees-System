@@ -171,6 +171,7 @@
  *
  * Version 1.6:
  * - Ensure cursor visibility for long trees.
+ * - Fixed bug with on learn actions.
  *
  */
 
@@ -1424,12 +1425,14 @@ SkillTreesSystem.loadHiddenTrees = function(actor) {
     actor.hiddenTrees = hiddenTrees;
 };
 
-SkillTreesSystem.GameBatlerUseItem = Game_Battler.prototype.useItem;
-Game_Battler.prototype.useItem = function(item) {
-    SkillTreesSystem.GameBatlerUseItem.call(this, item);
+SkillTreesSystem.SceneItemBaseApplyItem = Scene_ItemBase.prototype.applyItem;
+Scene_ItemBase.prototype.applyItem = function() {
+    SkillTreesSystem.SceneItemBaseApplyItem.call(this);
 
-    if (item.meta.resetSkillTrees)
-        SkillTreesSystem.resetSkillTrees(this, item);
+    this.itemTargetActors().forEach(function(target) {
+        if (this.item().meta.resetSkillTrees)
+            SkillTreesSystem.resetSkillTrees(target, this.item());
+    }, this);
 };
 
 /**
