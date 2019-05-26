@@ -34,6 +34,10 @@
  *     actor.addTree(skillTree);
  *
  *  skillTree - SkillTree object. You need to create it in the end of this file.
+ *
+ *  Or use SkillTreesSystem.actor2trees and SkillTreesSystem.class2trees:
+ *  trees described here are added automatically on the game start
+ *  to the actors and actors with specified class respectively.
  * ----------------------------------------------------------------------------
  * How to add skill points:
  *     actor.addTreesPoints(points, classId);

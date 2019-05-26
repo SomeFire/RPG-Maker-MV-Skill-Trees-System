@@ -117,6 +117,10 @@
  *     actor.addTree(skillTree);
  *     actor.addTreesPoints(points, classId);
  *
+ *     Or use SkillTreesSystem.actor2trees and SkillTreesSystem.class2trees:
+ *     trees described here are added automatically on the game start
+ *     to the actors and actors with specified class respectively.
+ *
  * To get free points for chosen tree:
  *
  *     actor.getTreesPoints(skillTree);
