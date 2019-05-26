@@ -1433,7 +1433,9 @@ SkillTreesSystem.loadRequirement = function(jsonReq) {
 SkillTreesSystem.loadOnLearnAction = function(jsonOla) {
     switch (jsonOla.type) {
         case "game_variable":
-            return new OnLearnChangeVariable(jsonOla.varId, jsonOla.inc)
+            return new OnLearnChangeVariable(jsonOla.varId, jsonOla.inc);
+        case "common_event":
+            return new OnLearnCommonEvent(jsonOla.id);
     }
 };
 
