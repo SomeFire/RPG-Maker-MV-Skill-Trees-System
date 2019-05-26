@@ -775,6 +775,81 @@ class OnLearnChangeVariable extends OnLearnAction {
 }
 
 /**
+ * Will call common event with specified ID.
+ *
+ * WARNING! Some event actions have no immediate effect, so, game can freezes until effect's end.
+ * Or effect freezes while you are in the menu.
+ * For example, text messages will appear only when you close menu and return to the map.
+ */
+class OnLearnCommonEvent extends OnLearnAction {
+    /**
+     * @param id Common event ID.
+     */
+    constructor(id) {
+        super("common_event");
+        this.val = id;
+    }
+
+    action() {
+        let interpreter = $gameMap._interpreter;
+
+        // backup
+        let branch = interpreter._branch;
+        let character = interpreter._character;
+        let childInterpreter = interpreter._childInterpreter;
+        let comments = interpreter._comments;
+        let depth = interpreter._depth;
+        let eventId = interpreter._eventId;
+        let frameCount = interpreter._frameCount;
+        let freezeChecker = interpreter._freezeChecker;
+        let indent = interpreter._indent;
+        let index = interpreter._index;
+        let list = interpreter._list;
+        let params = interpreter._params;
+        let waitCount = interpreter._waitCount;
+        let waitMode = interpreter._waitMode;
+
+        // common event values
+        interpreter._branch = null;
+        interpreter._character = null;
+        interpreter._childInterpreter = null;
+        interpreter._comments = "";
+        interpreter._depth = 0;
+        interpreter._eventId = 0;
+        interpreter._frameCount = 0;
+        interpreter._freezeChecker = 0;
+        interpreter._indent = 0;
+        interpreter._index = 0;
+        interpreter._list = $dataCommonEvents[this.val].list;
+        interpreter._params = null;
+        interpreter._waitCount = 0;
+        interpreter._waitMode = "";
+
+        // execute common event
+        while (interpreter._index < interpreter._list.length) {
+            interpreter.executeCommand();
+            interpreter._waitMode = ""; // prevent waiting
+        }
+
+        // return previous values
+        interpreter._branch = branch;
+        interpreter._character = character;
+        interpreter._childInterpreter = childInterpreter;
+        interpreter._comments = comments;
+        interpreter._depth = depth;
+        interpreter._eventId = eventId;
+        interpreter._frameCount = frameCount;
+        interpreter._freezeChecker = freezeChecker;
+        interpreter._indent = indent;
+        interpreter._index = index;
+        interpreter._list = list;
+        interpreter._params = params;
+        interpreter._waitCount = waitCount;
+        interpreter._waitMode = waitMode;
+    }
+}
+
+/**
  * Character should have some skill points to buy this skill.
  *
  * @param price Price in skill points.
@@ -846,6 +921,16 @@ function switchReq(switchId, val) {
  */
 function changeVar(variableId, increment) {
     return new OnLearnChangeVariable(variableId, increment);
+}
+
+/**
+ * WARNING! Be careful, events can cause bugs - read OnLearnCommonEvent documentation.
+ *
+ * @param id Common event ID.
+ * @return {OnLearnCommonEvent}
+ */
+function commonEvent(id) {
+    return new OnLearnCommonEvent(id);
 }
 
 /**
@@ -1201,7 +1286,7 @@ combatReflexes2 = skill([11, 12, 13], [
 ], [
      [changeVar(1, 1)], // On skill learn will increase the game variable 1 by 1.
      [changeVar(1, 2)], // On skill upgrade to second level will increase the game variable 1 by 2.
-     [changeVar(1, 3)]  // On skill upgrade to third  level will increase the game variable 1 by 3.
+     [commonEvent(1)]   // On skill upgrade to third  level will call common event 1.
 ]);
 dualAttack2 = skill([3], [
     [cost(1), skillReq(combatReflexes2, 1), varReq(1, 2)] // Requires game variable 1 to be 2 or greater.
