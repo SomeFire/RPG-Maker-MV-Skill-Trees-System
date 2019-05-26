@@ -104,6 +104,7 @@
  *
  * Version 1.6:
  * - Ensure cursor visibility for long trees.
+ * - Fixed bug with on learn actions.
  *
  */
 
@@ -235,7 +236,7 @@ class Skill extends TreeObject {
     }
 
     clone() {
-        var copy = new Skill(this.lvls, this.reqs, this.onLearnActions);
+        var copy = new Skill(this.lvls, this.reqs, this.learnActions);
 
         copy.level = this.level;
 
@@ -297,6 +298,7 @@ class SkillTree {
         copy.symbol = this.symbol;
         copy.points = this.points;
         copy._classId = this._classId;
+        copy._actorId = this._actorId;
         copy.skills = [];
 
         this.skills.forEach(function(skill, i, arr) {

@@ -171,6 +171,7 @@
  *
  * Version 1.6:
  * - Ensure cursor visibility for long trees.
+ * - Fixed bug with on learn actions.
  *
  */
 
