@@ -173,6 +173,9 @@
  * - Ensure cursor visibility for long trees.
  * - Fixed bug with on learn actions.
  *
+ * Version 1.7:
+ * - Changed sound for skills unable to learn.
+ *
  */
 
 //=============================================================================
@@ -355,9 +358,9 @@ Scene_SkillTrees.prototype.onTreeOk = function() {
 };
 
 Scene_SkillTrees.prototype.onItemOk = function() {
-    var actor = this._descriptionWindow._actor;
-    var tree = this._descriptionWindow._tree;
-    var skill = this._descriptionWindow._skill;
+    let actor = this._descriptionWindow._actor;
+    let tree = this._descriptionWindow._tree;
+    let skill = this._descriptionWindow._skill;
 
     if (skill.isAvailableToLearn(actor, tree)) {
         skill.learn(actor, tree);
@@ -835,6 +838,14 @@ Window_Selectable.prototype.leftColumn = function() {
 
 Window_Selectable.prototype.setLeftColumn = function(row) {
     this.setRightColumn(row - (SkillTreesSystem.skillWindowDrawCols - 1));
+};
+
+Skills_Window.prototype.isCurrentItemEnabled = function() {
+    let actor = this._descriptionWindow._actor;
+    let tree = this._descriptionWindow._tree;
+    let skill = this._descriptionWindow._skill;
+
+    return skill.isAvailableToLearn(actor, tree);
 };
 
 //-----------------------------------------------------------------------------

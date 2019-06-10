@@ -106,6 +106,9 @@
  * - Ensure cursor visibility for long trees.
  * - Fixed bug with on learn actions.
  *
+ * Version 1.7:
+ * - Changed sound for skills unable to learn.
+ *
  */
 
 //=============================================================================
