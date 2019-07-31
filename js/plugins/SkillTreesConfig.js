@@ -3,7 +3,7 @@
 //=============================================================================
 
 /*:
- * @plugindesc v1.6. Basic skill trees in a separate scene.
+ * @plugindesc v1.7. Basic skill trees in a separate scene.
  *
  * @author SomeFire
  *
@@ -45,13 +45,13 @@
  *  points - number of points you want to give to the actor.
  *  classId - what actor's class will receive points. Optional parameter - will
  *      use single pool or current base class by default.
- *
+ * ----------------------------------------------------------------------------
  * How to get skill points:
  *     actor.getTreesPoints(skillTree);
  *
  *  skillTree - for which tree you want to know points. Optional parameter -
  *      will return points for single pool or current base class by default.
- *
+ * ----------------------------------------------------------------------------
  * How to reset skills:
  *     Use item with <resetSkillTrees:class_id> tag to reset trees
  *      for specific class only, where class_id is a number of the class.
@@ -59,6 +59,30 @@
  *      (works with single pool only).
  *     Use item with <resetSkillTrees:all> tag to reset all trees,
  *      including actor trees (works with single pool only).
+ * ----------------------------------------------------------------------------
+ * How to learn skill by script call:
+ *     SkillTreesSystem.forceLearn(actor, treeSymbol, skillId);
+ *     SkillTreesSystem.tryLearn(actor, treeSymbol, skillId);
+ *
+ *  actor - actor, who should learn skill.
+ *  treeSymbol - symbol of the tree, where to search given skill.
+ *  skillId - skill ID from database.
+ *
+ *  `forceLearn` means skill will be learned, all requirements are ignored.
+ *  `tryLearn` means skill will be learned only if actor meets requirements.
+ * ----------------------------------------------------------------------------
+ * How to learn all skills for tree by script call:
+ *     SkillTreesSystem.forceLearnAll(actor, treeSymbol);
+ *     SkillTreesSystem.tryLearnAll(actor, treeSymbol);
+ *
+ *  actor - actor, who should learn skill.
+ *  treeSymbol - symbol of the tree, where skills will be learned.
+ *  ----------------------------------------------------------------------------
+ * How to learn all skills for all trees by script call:
+ *     SkillTreesSystem.forceLearnAll(actor);
+ *     SkillTreesSystem.tryLearnAll(actor);
+ *
+ *  actor - actor, who should learn skill.
  *
  * ----------------------------------------------------------------------------
  *
@@ -108,6 +132,7 @@
  *
  * Version 1.7:
  * - Changed sound for skills unable to learn.
+ * - Added script calls to learn skills in skill trees.
  *
  */
 
@@ -867,6 +892,152 @@ Game_Actor.prototype.getTreesPoints = function(tree) {
         return this.skillTrees._points(0);
 
     return this.skillTrees._points((tree && tree._classId > 0) ? tree._classId : this._classId);
+};
+
+/**
+ * Try to learn skill for actor in specified tree.
+ * Skill sublevels will be learned separately, and their requirements will be checked and used.
+ *
+ * @param actor Actor.
+ * @param symbol SkillTree symbol.
+ * @param skillId Skill ID from skill database. See `Skill.lvls`.
+ */
+SkillTreesSystem.tryLearn = function(actor, symbol, skillId) {
+    SkillTreesSystem._learn(actor, symbol, skillId, false);
+};
+
+/**
+ * Learn skill for actor in specified tree. Skill requirements will be ignored.
+ * If you want to spend skill points or add skill points to the tree - you should to it manually.
+ *
+ * @param actor Actor.
+ * @param symbol SkillTree symbol.
+ * @param skillId Skill ID from skill database. See `Skill.lvls`.
+ */
+SkillTreesSystem.forceLearn = function(actor, symbol, skillId) {
+    SkillTreesSystem._learn(actor, symbol, skillId, true);
+};
+
+/**
+ * Learn skill for actor in specified tree.
+ *
+ * @param actor Actor.
+ * @param symbol SkillTree symbol.
+ * @param id Skill ID from skill database. See `Skill.lvls`.
+ * @param force If true - skill requirements will be ignored.
+ * If false - skill sublevels will be learned separately, and their requirements will be checked and used.
+ * @private
+ */
+SkillTreesSystem._learn = function(actor, symbol, id, force) {
+    if (!actor)
+        throw new TypeError("Unidentified actor.");
+    if (!symbol)
+        throw new TypeError("Unidentified tree symbol.");
+    if (!id)
+        throw new TypeError("Unidentified database skill id.");
+
+    let trees = actor.skillTrees.trees;
+
+    for (let i = 0; i < trees.length; i++) {
+        let tree = trees[i];
+
+        if (tree.symbol === symbol) {
+            let skills = tree.skills;
+
+            for (let j = 0; j < skills.length; j++) {
+                let skill = skills[j];
+
+                if (skill == null || skill.type !== "skill")
+                    continue;
+
+                for (let k = 0; k < skill.lvls.length; k++) {
+                    if (skill.lvls[k] !== id)
+                        continue;
+
+                    if (skill.level <= k) {
+                        if (force)
+                            skill.levelUp(actor, k + 1 - skill.level);
+                        else {
+                            while (skill.level <= k && skill.isAvailableToLearn(actor, tree))
+                                skill.learn(actor, tree);
+                        }
+                    }
+
+                    return;
+                }
+            }
+        }
+    }
+};
+
+/**
+ * Learn all skills for actor in specified tree or for all trees if tree is not specified.
+ * Skill requirements will be ignored.
+ * If you want to spend skill points or add skill points to the tree - you should to it manually.
+ *
+ * @param actor Actor.
+ * @param symbol SkillTree symbol. Optional parameter.
+ */
+SkillTreesSystem.forceLearnAll = function(actor, symbol) {
+    if (!actor)
+        throw new TypeError("Unidentified actor.");
+
+    let trees = actor.skillTrees.trees;
+
+    for (let i = 0; i < trees.length; i++) {
+        let tree = trees[i];
+
+        if (!symbol || tree.symbol === symbol) {
+            let skills = tree.skills;
+
+            for (let j = 0; j < skills.length; j++) {
+                let skill = skills[j];
+
+                if (skill !== null && skill.type === "skill")
+                    skill.levelUp(actor, skill.lvls.length);
+            }
+        }
+    }
+};
+
+/**
+ * Try to learn all skills for actor in specified tree or for all trees if tree is not specified.
+ * Skill sublevels will be learned separately, and their requirements will be checked and used.
+ *
+ * @param actor Actor.
+ * @param symbol SkillTree symbol. Optional parameter.
+ */
+SkillTreesSystem.tryLearnAll = function(actor, symbol) {
+    if (!actor)
+        throw new TypeError("Unidentified actor.");
+
+    let trees = actor.skillTrees.trees;
+    let somethingLearned = true;
+
+    while (somethingLearned) {
+        somethingLearned = false;
+
+        for (let i = 0; i < trees.length; i++) {
+            let tree = trees[i];
+
+            if (!symbol || tree.symbol === symbol) {
+                let skills = tree.skills;
+
+                for (let j = 0; j < skills.length; j++) {
+                    let skill = skills[j];
+
+                    if (skill === null || skill.type !== "skill")
+                        continue;
+
+                    while (skill.level <= skill.lvls.length && skill.isAvailableToLearn(actor, tree)) {
+                        skill.learn(actor, tree);
+
+                        somethingLearned = true;
+                    }
+                }
+            }
+        }
+    }
 };
 
 //=============================================================================

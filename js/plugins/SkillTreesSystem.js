@@ -3,7 +3,7 @@
 //=============================================================================
 
 /*:
- * @plugindesc v1.6. Basic skill trees in a separate scene.
+ * @plugindesc v1.7. Basic skill trees in a separate scene.
  *
  * @author SomeFire
  *
@@ -121,9 +121,18 @@
  *     trees described here are added automatically on the game start
  *     to the actors and actors with specified class respectively.
  *
- * To get free points for chosen tree:
+ * To get free points for specific tree:
  *
  *     actor.getTreesPoints(skillTree);
+ *
+ * To learn skills by script call:
+ *
+ *     SkillTreesSystem.forceLearn(actor, treeSymbol, skillId);
+ *     SkillTreesSystem.forceLearnAll(actor, treeSymbol);
+ *     SkillTreesSystem.forceLearnAll(actor);
+ *     SkillTreesSystem.tryLearn(actor, treeSymbol, skillId);
+ *     SkillTreesSystem.tryLearnAll(actor, treeSymbol);
+ *     SkillTreesSystem.tryLearnAll(actor);
  *
  * See SkillTreesConfig.js for details.
  *
@@ -175,6 +184,7 @@
  *
  * Version 1.7:
  * - Changed sound for skills unable to learn.
+ * - Added script calls to learn skills in skill trees.
  *
  */
 
