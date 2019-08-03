@@ -15,7 +15,7 @@
  * @type number
  * @min 0
  * @desc Amount of skill points given per level.
- * Use 0 if you wish to have no limit.
+ * Set 0 if you want to give skill points manually.
  * @default 3
  *
  * @param Single Points Pool
