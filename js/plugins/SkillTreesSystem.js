@@ -56,6 +56,13 @@
  * Use small cursor for icons with transparent background.
  * @default true
  *
+ * @param Skill icon scale factor
+ * @parent ---General---
+ * @type float
+ * @min 1
+ * @desc Drawing size for skills. Separate arrows from icons with opaque background to remove glitches.
+ * @default 1
+ *
  * @param ---Text---
  * @default
  *
@@ -185,6 +192,7 @@
  * Version 1.7:
  * - Changed sound for skills unable to learn.
  * - Added script calls to learn skills in skill trees.
+ * - Added scale factor for skill icons.
  *
  */
 
@@ -218,6 +226,9 @@ SkillTreesSystem.skillWindowDrawCols = Number(SkillTreesSystem.Parameters['Draw 
 
 /** Use big cursor for skill icons with opaque background. Use small cursor for icons with transparent background. */
 SkillTreesSystem.skillCursorMargin = eval(SkillTreesSystem.Parameters['Margin for skill cursor']);
+
+/** Drawing size for skills. */
+SkillTreesSystem.skillScale = Number(SkillTreesSystem.Parameters['Skill icon scale factor']);
 
 // ---Text---
 
@@ -557,7 +568,7 @@ Skills_Window.prototype.maxCols = function() {
 };
 
 Skills_Window.prototype.windowWidth = function() {
-    return Window_Base._iconWidth * SkillTreesSystem.skillWindowDrawCols + this.standardPadding() * 2;
+    return this.itemWidth() * SkillTreesSystem.skillWindowDrawCols + this.standardPadding() * 2;
 };
 
 Skills_Window.prototype.windowHeight = function() {
@@ -595,16 +606,16 @@ Skills_Window.prototype.findTree = function(symbol) {
 };
 
 Skills_Window.prototype.itemWidth = function() {
-    return Window_Base._iconWidth;
+    return Window_Base._iconWidth * SkillTreesSystem.skillScale;
 };
 
 Skills_Window.prototype.itemHeight = function() {
-    return Window_Base._iconHeight;
+    return Window_Base._iconHeight * SkillTreesSystem.skillScale;
 };
 
 Skills_Window.prototype.drawItem = function(treeObj, index) {
-    var x = Window_Base._iconWidth * (index % SkillTreesSystem.skillWindowMaxCols) - this._scrollX;
-    var y = Window_Base._iconHeight * Math.floor(index / SkillTreesSystem.skillWindowMaxCols) - this._scrollY;
+    var x = this.itemWidth() * (index % SkillTreesSystem.skillWindowMaxCols) - this._scrollX;
+    var y = this.itemHeight() * Math.floor(index / SkillTreesSystem.skillWindowMaxCols) - this._scrollY;
 
     this.changePaintOpacity(treeObj.isEnabled(this._actor, this._tree));
     this.drawIcon(treeObj.iconId(), x, y);
@@ -612,17 +623,30 @@ Skills_Window.prototype.drawItem = function(treeObj, index) {
 
     if (treeObj instanceof Skill) {
         var size = this.contents.fontSize;
-        this.contents.fontSize = Window_Base._iconHeight / 3;
+        this.contents.fontSize = this.itemHeight() / 3;
 
         if (treeObj.currentLevel() === treeObj.maxLevel())
             var text = "MAX";
         else
             text = treeObj.currentLevel() + "/" + treeObj.maxLevel();
 
-        this.drawText(text, x + 2, y + Window_Base._iconHeight / 4, Window_Base._iconWidth - 4, 'center');
+        this.drawText(text, x + 2, y + this.itemHeight() / 4, this.itemWidth() - 4, 'center');
 
         this.contents.fontSize = size;
     }
+};
+
+Skills_Window.prototype.drawText = function(text, x, y, maxWidth, align) {
+    this.contents.drawText(text, x, y, maxWidth, this.lineHeight() * SkillTreesSystem.skillScale, align);
+};
+
+Skills_Window.prototype.drawIcon = function(iconIndex, x, y) {
+    var bitmap = ImageManager.loadSystem('IconSet');
+    var pw = Window_Base._iconWidth;
+    var ph = Window_Base._iconHeight;
+    var sx = iconIndex % 16 * pw;
+    var sy = Math.floor(iconIndex / 16) * ph;
+    this.contents.blt(bitmap, sx, sy, pw, ph, x, y, pw * SkillTreesSystem.skillScale, ph * SkillTreesSystem.skillScale);
 };
 
 Skills_Window.prototype.drawAllItems = function() {
@@ -682,8 +706,8 @@ Skills_Window.prototype.itemRect = function(index) {
     var maxCols = this.maxCols();
     rect.width = this.itemWidth();
     rect.height = this.itemHeight();
-    rect.x = Window_Base._iconWidth * (index % maxCols) - this._scrollX;
-    rect.y = Window_Base._iconHeight * Math.floor(index / maxCols) - this._scrollY;
+    rect.x = this.itemWidth() * (index % maxCols) - this._scrollX;
+    rect.y = this.itemHeight() * Math.floor(index / maxCols) - this._scrollY;
     return rect;
 };
 
@@ -878,7 +902,7 @@ Description_Window.prototype.initialize = function(x, y) {
 };
 
 Description_Window.prototype.windowWidth = function() {
-    return Graphics.boxWidth - (Window_Base._iconWidth * SkillTreesSystem.skillWindowDrawCols + this.standardPadding() * 2 - 8);
+    return Graphics.boxWidth - (Window_Base._iconWidth * SkillTreesSystem.skillScale * SkillTreesSystem.skillWindowDrawCols + this.standardPadding() * 2);
 };
 
 Description_Window.prototype.windowHeight = function() {

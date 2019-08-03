@@ -133,6 +133,7 @@
  * Version 1.7:
  * - Changed sound for skills unable to learn.
  * - Added script calls to learn skills in skill trees.
+ * - Added scale factor for skill icons.
  *
  */
 
