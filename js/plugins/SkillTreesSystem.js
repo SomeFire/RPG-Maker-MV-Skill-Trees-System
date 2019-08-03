@@ -193,6 +193,7 @@
  * - Changed sound for skills unable to learn.
  * - Added script calls to learn skills in skill trees.
  * - Added scale factor for skill icons.
+ * - Added stats requirement.
  *
  */
 
@@ -1418,6 +1419,8 @@ SkillTreesSystem.loadRequirement = function(jsonReq) {
             return new VariableRequirement(jsonReq.varId, jsonReq.intVal);
         case "game_switch":
             return new SwitchRequirement(jsonReq.switchId, jsonReq.val);
+        case "stat":
+            return new SwitchRequirement(jsonReq.id, jsonReq.val);
     }
 };
 

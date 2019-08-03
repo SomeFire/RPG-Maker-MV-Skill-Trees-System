@@ -134,6 +134,7 @@
  * - Changed sound for skills unable to learn.
  * - Added script calls to learn skills in skill trees.
  * - Added scale factor for skill icons.
+ * - Added stats requirement.
  *
  */
 
@@ -701,6 +702,37 @@ class SwitchRequirement extends Requirement {
 }
 
 /**
+ * Character should have enough stats to meet this requirement.
+ */
+class StatRequirement extends Requirement {
+    /**
+     * @param id Stat ID.
+     * @param value Required stat value.
+     */
+    constructor(id, value) {
+        if (!id)
+            throw new TypeError("Unidentified stat id.");
+        if (!value)
+            throw new TypeError("Unidentified stat value.");
+        if (!value)
+            throw new TypeError("Unidentified stat text.");
+
+        super("stat");
+
+        this.id = id;
+        this.val = value;
+    }
+
+    meets(actor, tree) {
+        return actor.param(this.id) >= this.val;
+    }
+
+    text() {
+        return this.val + " " + TextManager.param(this.id);
+    }
+}
+
+/**
  * Interface for actions after skill learn. See implementations.
  *
  * WARNING! Don't forget to add loading code in {@link SkillTreesSystem#loadOnLearnAction} in the SkillTreesSystem.js.
@@ -825,9 +857,90 @@ function changeVar(variableId, increment) {
  *
  * @param skillIds Array of skill IDs.
  * @param requirements Array of requirements for every skill level.
+ * @param onLearnActions On learn actions.
  */
 function skill(skillIds, requirements, onLearnActions) {
     return new Skill(skillIds, requirements, onLearnActions);
+}
+
+/**
+ * @param value Actor's max HP value.
+ * @return {StatRequirement}
+ */
+function mhp(value) {
+    return new StatRequirement(0, value);
+}
+
+/**
+ * @param value Actor's max MP value.
+ * @return {StatRequirement}
+ */
+function mmp(value) {
+    return new StatRequirement(1, value);
+}
+
+/**
+ * @param value Actor's attack value.
+ * @return {StatRequirement}
+ */
+function atk(value) {
+    return new StatRequirement(2, value);
+}
+
+/**
+ * @param value Actor's defence value.
+ * @return {StatRequirement}
+ */
+function def(value) {
+    return new StatRequirement(3, value);
+}
+
+/**
+ * @param value Actor's magic atack value.
+ * @return {StatRequirement}
+ */
+function mat(value) {
+    return new StatRequirement(4, value);
+}
+
+/**
+ * @param value Actor's magic defence value.
+ * @return {StatRequirement}
+ */
+function mdf(value) {
+    return new StatRequirement(5, value);
+}
+
+/**
+ * @param value Actor's agility value.
+ * @return {StatRequirement}
+ */
+function agi(value) {
+    return new StatRequirement(6, value);
+}
+
+/**
+ * @param value Actor's luck value.
+ * @return {StatRequirement}
+ */
+function luk(value) {
+    return new StatRequirement(7, value);
+}
+
+/**
+ * @param value Actor's hit value.
+ * @return {StatRequirement}
+ */
+function hit(value) {
+    return new StatRequirement(8, value);
+}
+
+/**
+ * @param value Actor's evasion value.
+ * @return {StatRequirement}
+ */
+function eva(value) {
+    return new StatRequirement(9, value);
 }
 
 //=============================================================================
@@ -1072,7 +1185,7 @@ rampage = skill([15], [
 ]);
 armorBreak = skill([16, 17, 18], [
     [cost(1), treePoints(5), skillReq(berserkerDance)],
-    [cost(2)],
+    [cost(2), atk(30)],
     [cost(3), itemReq('item', 1, 5)]
 ]);
 spark = skill([10], [
