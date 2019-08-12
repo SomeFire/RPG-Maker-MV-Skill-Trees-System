@@ -791,7 +791,7 @@ class OnLearnCommonEvent extends OnLearnAction {
      */
     constructor(id) {
         super("common_event");
-        this.val = id;
+        this.id = id;
     }
 
     action() {
@@ -824,7 +824,7 @@ class OnLearnCommonEvent extends OnLearnAction {
         interpreter._freezeChecker = 0;
         interpreter._indent = 0;
         interpreter._index = 0;
-        interpreter._list = $dataCommonEvents[this.val].list;
+        interpreter._list = $dataCommonEvents[this.id].list;
         interpreter._params = null;
         interpreter._waitCount = 0;
         interpreter._waitMode = "";
