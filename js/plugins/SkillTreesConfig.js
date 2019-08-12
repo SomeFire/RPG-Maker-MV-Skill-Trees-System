@@ -831,8 +831,14 @@ class OnLearnCommonEvent extends OnLearnAction {
 
         // execute common event
         while (interpreter._index < interpreter._list.length) {
-            interpreter.executeCommand();
-            interpreter._waitMode = ""; // prevent waiting
+            let command = interpreter.currentCommand();
+
+            if (command != null && (command.code >= 101 && command.code <= 104) && $gameMessage.isBusy())
+                interpreter._index++;
+            else {
+                interpreter.executeCommand();
+                interpreter._waitMode = ""; // prevent waiting
+            }
         }
 
         // return previous values
