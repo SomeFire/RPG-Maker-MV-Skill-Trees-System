@@ -831,9 +831,7 @@ class OnLearnCommonEvent extends OnLearnAction {
 
         // execute common event
         while (interpreter._index < interpreter._list.length) {
-            let command = interpreter.currentCommand();
-
-            if (command != null && (command.code >= 101 && command.code <= 104) && $gameMessage.isBusy())
+            if (OnLearnCommonEvent.isBusyWaiter(interpreter.currentCommand()) && $gameMessage.isBusy())
                 interpreter._index++;
             else {
                 interpreter.executeCommand();
@@ -856,6 +854,15 @@ class OnLearnCommonEvent extends OnLearnAction {
         interpreter._params = params;
         interpreter._waitCount = waitCount;
         interpreter._waitMode = waitMode;
+    }
+
+    static isBusyWaiter(command) {
+        if (command == null)
+            return false;
+
+        let code = command.code;
+
+        return code >= 101 && code <= 105 || code === 201 || code === 221 || code === 222 || code === 261;
     }
 }
 
