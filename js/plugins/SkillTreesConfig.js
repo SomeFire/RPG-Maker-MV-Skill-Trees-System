@@ -136,6 +136,9 @@
  * - Added scale factor for skill icons.
  * - Added stats requirement.
  *
+ * Version 1.8:
+ * - Fixed bug which gives skill point on resetting empty tree.
+ *
  */
 
 //=============================================================================
@@ -975,7 +978,7 @@ Game_Actor.prototype.addTreesPoints = function(points, clsId) {
         return;
     }
 
-    if (!points)
+    if (!points && points !== 0)
         points = 1;
 
     if (!clsId) {
