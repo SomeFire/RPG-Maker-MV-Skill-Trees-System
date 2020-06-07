@@ -198,6 +198,7 @@
  * Version 1.8:
  * - Fixed bug which gives skill point on resetting empty tree.
  * - Trees are updatable now.
+ * - Reworked separate points pool.
  *
  */
 
@@ -1103,8 +1104,9 @@ SkillTreesSystem.initActorFreePoints = function (actor) {
         actor.skillTrees.pts[0] = skillTrees.pts[0];
 };
 
-SkillTreesSystem.initClassFreePoints = function (actor) {
-    let clsId = actor._classId;
+SkillTreesSystem.initClassFreePoints = function (actor, clsId) {
+    if (!clsId)
+        clsId = actor._classId;
 
     let skillTrees = SkillTreesSystem.class2trees[clsId];
 
@@ -1204,7 +1206,7 @@ Game_Actor.prototype.changeSkillTrees = function(oldClassId, newClassId) {
 
     if (needInit) {
         SkillTreesSystem.addClassTrees(this, newClassId);
-        SkillTreesSystem.initClassFreePoints(this);
+        SkillTreesSystem.initClassFreePoints(this, newClassId);
     }
 
     for (let tree of this.skillTrees.trees) {
@@ -1390,55 +1392,52 @@ SkillTreesSystem.resetSkillTrees = function(actor, item) {
     if (!actor.skillTrees)
         return;
 
+    let points = 0;
+
     if (item.meta.resetSkillTrees === "all") {
-        if (!SkillTreesSystem.singlePointsPool) {
-            console.warn("Detected try to reset skills for separate pools as single pool. " +
-                "Use Single Points Pool or don't use `all` command to reset skills.");
+        if (SkillTreesSystem.singlePointsPool) {
 
-            return;
+            for (let tree of actor.skillTrees.trees)
+                points += SkillTreesSystem.resetSkillTree(actor, tree);
+
+            actor.addTreesPoints(points, 0);
+        } else {
+            for (let tree of actor.skillTrees.trees) {
+                points = SkillTreesSystem.resetSkillTree(actor, tree);
+
+                if (tree._actorId > 0)
+                    actor.addTreesPoints(points, 0);
+                else if (tree._classId > 0)
+                    actor.addTreesPoints(points, tree._classId);
+                else
+                    actor.addTreesPoints(points, tree.symbol);
+            }
         }
-
-        let points = 0;
-
-        for (let tree of actor.skillTrees.trees)
-            points += SkillTreesSystem.resetSkillTree(actor, tree);
-
-        actor.addTreesPoints(points, 0);
     } else if (item.meta.resetSkillTrees === "actor") {
-        if (!SkillTreesSystem.singlePointsPool) {
-            console.warn("Detected try to reset skills for separate pools as single pool. " +
-                "Use Single Points Pool or don't use `all` command to reset skills.");
-
-            return;
-        }
-
-        let points = 0;
-
         for (let tree of actor.skillTrees.trees) {
-            if (tree._actorId !== actor._actorId)
-                continue;
+            if (tree._actorId > 0) {
+                points = SkillTreesSystem.resetSkillTree(actor, tree);
 
-            points += SkillTreesSystem.resetSkillTree(actor, tree);
+                actor.addTreesPoints(points, 0);
+            }
         }
-
-        actor.addTreesPoints(points, 0);
     } else {
-        let clsId = Number(item.meta.resetSkillTrees);
+        let treeId = item.meta.resetSkillTrees;
 
-        if (clsId < 0) {
+        if (treeId === 0) {
             console.warn("Unexpected class id to reset skills.");
 
             return;
         }
 
         for (let tree of actor.skillTrees.trees) {
-            if (tree._classId === 0 || (clsId > 0 && tree._classId !== clsId))
+            if (treeId != tree._classId && treeId !== tree.symbol)
                 continue;
 
             let points = SkillTreesSystem.resetSkillTree(actor, tree);
 
             if (points > 0)
-                actor.addTreesPoints(points, tree._classId);
+                actor.addTreesPoints(points, treeId);
         }
     }
 };

@@ -139,6 +139,7 @@
  * Version 1.8:
  * - Fixed bug which gives skill point on resetting empty tree.
  * - Trees are updatable now.
+ * - Reworked separate points pool.
  *
  */
 
@@ -385,7 +386,7 @@ class SkillTrees {
         else if (trees instanceof SkillTree)
             trees = [trees];
 
-        this.pts = [freePoints];
+        this.pts = {0: freePoints};
         this.trees = trees;
     }
 
@@ -413,27 +414,21 @@ class SkillTrees {
      * Must be called only inside actor.addTreesPoints() (because we can't access JP from here).
      *
      * @param val Value.
-     * @param clsId Class id.
+     * @param id Class id or tree symbol (for other trees).
      * @returns {*}
      */
-    _addPoints(val, clsId) {
+    _addPoints(val, id) {
         // YEP job points are given in YEP plugins
         if (SkillTreesSystem.useJP())
-            throw new Error("SkillTrees._points must be called only inside actor.getTreesPoints().");
+            throw new Error("SkillTrees._addPoints must be called only inside actor.addTreesPoints().");
 
         if (SkillTreesSystem.singlePointsPool)
-            clsId = 0;
-        else if (!clsId || clsId <= 0)
-            throw new Error("In case of separate points pool - specify class id for method SkillTrees#addPoints().");
+            id = 0;
 
-        // YEP job points are given in YEP plugins
-        if (SkillTreesSystem.useJP())
-            return;
-
-        if (this.pts[clsId])
-            this.pts[clsId] += val;
+        if (this.pts[id])
+            this.pts[id] += val;
         else
-            this.pts[clsId] = val;
+            this.pts[id] = val;
     }
 
     setActorId(actorId) {
@@ -458,10 +453,10 @@ class SkillTrees {
     }
 
     clone() {
-        var copy = new SkillTrees();
+        let copy = new SkillTrees();
 
-        for (let i = 0; i < this.pts.length; i++) {
-            copy.pts[i] = this.pts[i];
+        for (let key in this.pts) {
+            copy.pts[key] = this.pts[key];
         }
 
         this.trees.forEach(function(tree, i, arr) {
@@ -533,16 +528,16 @@ class Cost extends Requirement {
     }
 
     use(actor, tree) {
-        let clsId = 0;
+        let treeId = 0;
 
         if (!SkillTreesSystem.singlePointsPool) {
-            clsId = tree._classId;
+            treeId = tree._classId;
 
-            if (clsId === 0)
-                clsId = actor._classId;
+            if (treeId === 0)
+                treeId = tree.symbol;
         }
 
-        actor.addTreesPoints(-this.price, clsId);
+        actor.addTreesPoints(-this.price, treeId);
         tree.points += this.price;
     }
 }
@@ -1008,11 +1003,11 @@ Game_Actor.prototype.addTree = function(skillTreeObject) {
  * Give some skill points to the actor.
  *
  * @param points Amount of points to give. Default value = 1.
- * @param clsId Class id. Default value = 0 (for single pool) or actor's base class id (for separate pools).
+ * @param treeId Class id or tree symbol. Default value = 0 (for single pool) or actor's base class id (for separate pools).
  */
-Game_Actor.prototype.addTreesPoints = function(points, clsId) {
+Game_Actor.prototype.addTreesPoints = function(points, treeId) {
     if (SkillTreesSystem.useJP()) {
-        this.gainJp(points, clsId);
+        this.gainJp(points, treeId);
 
         return;
     }
@@ -1020,17 +1015,17 @@ Game_Actor.prototype.addTreesPoints = function(points, clsId) {
     if (!points && points !== 0)
         points = 1;
 
-    if (!clsId) {
+    if (!treeId) {
         if (SkillTreesSystem.singlePointsPool)
-            clsId = 0;
+            treeId = 0;
         else
-            clsId = this._classId;
+            treeId = this._classId;
     }
 
     if (!this.skillTrees)
         this.skillTrees = new SkillTrees();
 
-    this.skillTrees._addPoints(points, clsId);
+    this.skillTrees._addPoints(points, treeId);
 };
 
 /**
@@ -1047,7 +1042,7 @@ Game_Actor.prototype.getTreesPoints = function(tree) {
     if (SkillTreesSystem.singlePointsPool)
         return this.skillTrees._points(0);
 
-    return this.skillTrees._points((tree && tree._classId > 0) ? tree._classId : this._classId);
+    return this.skillTrees._points((tree && tree._classId > 0) ? tree._classId : tree.symbol);
 };
 
 /**
@@ -1301,7 +1296,7 @@ arrowLeft = new Arrow(29);
  * @type {{"1": actorId, "2": SkillTrees}}
  */
 SkillTreesSystem.actor2trees = {
-    1: new SkillTrees(55, // Character will have 55 skill points to spend at the begining.
+    1: new SkillTrees(100, // Character will have 100 skill points to spend at the beginning.
         [new SkillTree('Berserk', 'berserk_tree', [
             // Null represents empty square in the skill window.
             // Arrow points from one skill to another.
@@ -1336,7 +1331,7 @@ SkillTreesSystem.actor2trees = {
             null,   null,           null,          null,               null,       null,            null,
         ])]
     ),
-    2: new SkillTrees(55,
+    2: new SkillTrees(100,
         [new SkillTree('Berserk2', 'berserk_tree2', [
             null,   null,           null,          combatReflexes2,     null,       guard2,           null,
             null,   null,           arrowLeft,     arrowDown,          null,       null,            null,
@@ -1358,7 +1353,7 @@ SkillTreesSystem.actor2trees = {
  * @private
  */
 function _sample_sameTreeSetupForDifferentActors() {
-    return new SkillTrees(55,
+    return new SkillTrees(100,
         [new SkillTree('Same Trees 1', 'same_trees_1', [
             null,   null,           null,          combatReflexes,     null,       guard,           null,
             null,   null,           arrowLeft,     arrowDown,          null,       null,            null,
@@ -1446,7 +1441,7 @@ SkillTreesSystem.bigTree = new SkillTree('Big Tree (see comments)', 'big_tree', 
  * @type {{"1": classId, "2": SkillTrees}}
  */
 SkillTreesSystem.class2trees = {
-    1: new SkillTrees(11,
+    1: new SkillTrees(10,
         [new SkillTree('Class 1', 'Class 1', [
             // Null represents empty square in the skill window.
             // Arrow points from one skill to another.
@@ -1471,7 +1466,7 @@ SkillTreesSystem.class2trees = {
             null,   null,           null,          rampage,            null,       null,            null,
         ])]
     ),
-    2:  new SkillTrees(12,
+    2:  new SkillTrees(20,
         [new SkillTree('Class 2', 'Class 2', [
             null,   null,           null,          null,               null,       guard,           null,
             null,   null,           null,          null,               null,       null,            null,
@@ -1484,7 +1479,7 @@ SkillTreesSystem.class2trees = {
             null,   null,           null,          null,               null,       null,            null,
         ])]
     ),
-    3:  new SkillTrees(13,
+    3:  new SkillTrees(30,
         [new SkillTree('Class 3', 'Class 3', [
             null,   null,           null,          null,               null,       guard,           null,
             null,   null,           null,          null,               null,       null,            null,
@@ -1497,7 +1492,7 @@ SkillTreesSystem.class2trees = {
             null,   null,           null,          null,               null,       null,            null,
         ])]
     ),
-    4:  new SkillTrees(14,
+    4:  new SkillTrees(40,
         [new SkillTree('Class 4', 'Class 4', [
             null,   null,           null,          null,               null,       guard,           null,
             null,   null,           null,          null,               null,       null,            null,
