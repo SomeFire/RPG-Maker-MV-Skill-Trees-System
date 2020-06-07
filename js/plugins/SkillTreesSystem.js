@@ -197,6 +197,7 @@
  *
  * Version 1.8:
  * - Fixed bug which gives skill point on resetting empty tree.
+ * - Trees are updatable now.
  *
  */
 
@@ -460,8 +461,10 @@ Trees_Window.prototype.maxCols = function() {
 Trees_Window.prototype.makeCommandList = function() {
     if (this._actor) {
         if (this._actor.skillTrees && this._actor.skillTrees.trees && this._actor.skillTrees.trees.length > 0) {
-            for (let tree of this._actor.skillTrees.trees)
-                this.addCommand(tree.name, tree.symbol, true);
+            for (let tree of this._actor.skillTrees.trees) {
+                if (tree.isVisible())
+                    this.addCommand(tree.name, tree.symbol, true);
+            }
         } else
             this.addCommand(SkillTreesSystem._noTreesText, null, false);
     }
@@ -485,8 +488,11 @@ Trees_Window.prototype.select = function(index) {
     if (this._skillsWindow)
         this._skillsWindow.setSkillTree(this.currentSymbol());
 
-    if (this._actor && this._descriptionWindow)
-        this._descriptionWindow.showDescription(this._actor.skillTrees ? this._actor.skillTrees.trees[index] : null);
+    if (this._actor && this._descriptionWindow) {
+        this._descriptionWindow.showDescription(this._actor.skillTrees ?
+            this._actor.skillTrees.getTree(this.currentSymbol()) :
+            null);
+    }
 };
 
 Trees_Window.prototype.setActor = function(actor) {
@@ -1083,50 +1089,76 @@ Game_Actor.prototype.setup = function(actorId) {
 
     SkillTreesSystem.addActorTrees(this);
     SkillTreesSystem.addClassTrees(this);
+
+    SkillTreesSystem.initActorFreePoints(this);
+    SkillTreesSystem.initClassFreePoints(this);
+
+    this.skillTrees.trees.forEach(tree => tree.visibility = true)
 };
 
-SkillTreesSystem.addActorTrees = function(actor) {
+SkillTreesSystem.initActorFreePoints = function (actor) {
+    let skillTrees = SkillTreesSystem.actor2trees[actor._actorId];
+
+    if (skillTrees)
+        actor.skillTrees.pts[0] = skillTrees.pts[0];
+};
+
+SkillTreesSystem.initClassFreePoints = function (actor) {
+    let clsId = actor._classId;
+
+    let skillTrees = SkillTreesSystem.class2trees[clsId];
+
+    if (!skillTrees)
+        return;
+
+    if (SkillTreesSystem.singlePointsPool)
+        actor.skillTrees.pts[0] += skillTrees.pts[0];
+    else
+        actor.skillTrees.pts[clsId] = skillTrees.pts[0];
+};
+
+SkillTreesSystem.addActorTrees = function(actor, actorId) {
     if (!SkillTreesSystem.actor2trees)
         return;
 
-    var skillTrees = SkillTreesSystem.actor2trees[actor._actorId];
+    if (!actorId)
+        actorId = actor._actorId;
 
-    if (skillTrees) {
-        actor.skillTrees = skillTrees.clone();
-
-        actor.skillTrees.setActorId(actor._actorId);
-
-        if (!SkillTreesSystem.singlePointsPool)
-            actor.skillTrees.pts[actor._classId] = actor.skillTrees.pts[0];
-    }
-};
-
-SkillTreesSystem.addClassTrees = function(actor) {
-    if (!SkillTreesSystem.class2trees)
-        return;
-
-    var skillTrees = SkillTreesSystem.class2trees[actor._classId];
+    let skillTrees = SkillTreesSystem.actor2trees[actorId];
 
     if (!skillTrees)
         return;
 
     skillTrees = skillTrees.clone();
 
-    skillTrees.setClassId(actor._classId);
+    skillTrees.setActorId(actorId);
 
-    if (!actor.skillTrees) {
-        actor.skillTrees = skillTrees;
-
-        if (!SkillTreesSystem.singlePointsPool)
-            actor.skillTrees.pts[actor._classId] = skillTrees.pts[0]; // New tree always contain init points in pts[0].
-    } else {
+    if (actor.skillTrees)
         actor.skillTrees.trees = actor.skillTrees.trees.concat(skillTrees.trees);
+    else
+        actor.skillTrees = skillTrees;
+};
 
-        if (SkillTreesSystem.singlePointsPool)
-            actor.skillTrees.pts[0] += skillTrees.pts[0];
-        else
-            actor.skillTrees.pts[actor._classId] += skillTrees.pts[0];
-    }
+SkillTreesSystem.addClassTrees = function(actor, clsId) {
+    if (!SkillTreesSystem.class2trees)
+        return;
+
+    if (!clsId)
+        clsId = actor._classId;
+
+    let skillTrees = SkillTreesSystem.class2trees[clsId];
+
+    if (!skillTrees)
+        return;
+
+    skillTrees = skillTrees.clone();
+
+    skillTrees.setClassId(clsId);
+
+    if (actor.skillTrees)
+        actor.skillTrees.trees = actor.skillTrees.trees.concat(skillTrees.trees);
+    else
+        actor.skillTrees = skillTrees;
 };
 
 SkillTreesSystem.gameActorChangeClass = Game_Actor.prototype.changeClass;
@@ -1139,7 +1171,7 @@ Game_Actor.prototype.changeClass = function(classId, keepExp) {
 
     this._classChangeInProgress = false;
 
-    this.changeSkillTrees(oldClassId, classId, false);
+    this.changeSkillTrees(oldClassId, classId);
 };
 
 SkillTreesSystem.gameActorChangeSubclass = Game_Actor.prototype.changeSubclass;
@@ -1152,56 +1184,36 @@ Game_Actor.prototype.changeSubclass = function(classId) {
 
     this._classChangeInProgress = false;
 
-    this.changeSkillTrees(oldClassId, oldClassId === classId ? 0 : classId, true);
+    this.changeSkillTrees(oldClassId, oldClassId === classId ? 0 : classId);
 };
 
-Game_Actor.prototype.changeSkillTrees = function(oldClassId, newClassId, isSubclass) {
+Game_Actor.prototype.changeSkillTrees = function(oldClassId, newClassId) {
     if (this !== $gameActors.actor(this._actorId) || oldClassId === newClassId)
         return;
 
-    if (!this.hiddenTrees)
-        this.hiddenTrees = {};
+    let needInit = true;
 
-    /////
-    // Save old trees.
-    /////
+    for (let tree of this.skillTrees.trees) {
+        if (tree._classId !== newClassId)
+            continue;
 
-    if (oldClassId > 0) {
-        if (this.hiddenTrees[oldClassId]) {
-            throw new ReferenceError("Unexpected skill trees for classId." +
-                " Tree storage shouldn't contain trees for active classId." +
-                " [classId=" + oldClassId + "]");
-        }
+        needInit = false;
 
-        // Find out what trees belong to this class id.
-        let oldTreesSymbols = SkillTreesSystem.getTreesSymbols(this, oldClassId);
-
-        // Move trees from active skill tree object to tree storage.
-        SkillTreesSystem.hideTrees(this, oldClassId, oldTreesSymbols);
+        break;
     }
 
-    /////
-    // Add trees of new class.
-    /////
+    if (needInit) {
+        SkillTreesSystem.addClassTrees(this, newClassId);
+        SkillTreesSystem.initClassFreePoints(this);
+    }
 
-    // Lazy initialization for tree storage.
-    SkillTreesSystem.initHiddenSkillTrees(this, newClassId);
+    for (let tree of this.skillTrees.trees) {
+        if (oldClassId > 0 && tree._classId === oldClassId)
+            tree.hide(this);
 
-    // Move trees from tree storage to active skill tree object.
-    SkillTreesSystem.activateHiddenTrees(this, newClassId);
-};
-
-SkillTreesSystem.getTreesSymbols = function(actor, classId) {
-    let oldTreesArray = SkillTreesSystem.findSkillTrees(classId).trees;
-
-    let oldTreesSymbols = [];
-
-    for (let key in oldTreesArray)
-        oldTreesSymbols.push(oldTreesArray[key].symbol);
-
-    oldTreesArray.splice(0, oldTreesArray.length);
-
-    return oldTreesSymbols;
+        if (tree._classId === newClassId)
+            tree.relearn(this);
+    }
 };
 
 SkillTreesSystem.findSkillTrees = function(classId) {
@@ -1217,66 +1229,6 @@ SkillTreesSystem.findSkillTrees = function(classId) {
     return skillTrees;
 };
 
-SkillTreesSystem.hideTrees = function(actor, classId, treesSymbols) {
-    let i = 0;
-    let oldTreesArray = [];
-
-    while (true) {
-        if (i === actor.skillTrees.trees.length)
-            break;
-
-        let tree = actor.skillTrees.trees[i];
-
-        if (treesSymbols.includes(tree.symbol)) {
-            for (let skill of tree.skills) {
-                if (skill instanceof Skill)
-                    skill.forget(actor);
-            }
-
-            oldTreesArray.push(tree);
-
-            actor.skillTrees.trees.splice(i, 1);
-        } else
-            i++;
-    }
-
-    actor.hiddenTrees[classId] = oldTreesArray;
-};
-
-SkillTreesSystem.initHiddenSkillTrees = function(actor, classId) {
-    if (actor.hiddenTrees[classId])
-        return;
-
-    actor.hiddenTrees[classId] = [];
-
-    let skillTrees = SkillTreesSystem.class2trees[classId];
-
-    if (skillTrees) {
-        skillTrees.setClassId(classId);
-
-        skillTrees = skillTrees.clone();
-
-        actor.skillTrees.pts[classId] = skillTrees.pts[0];
-
-        actor.hiddenTrees[classId] = skillTrees.clone().trees;
-    } else
-        actor.hiddenTrees[classId] = [];
-};
-
-SkillTreesSystem.activateHiddenTrees = function(actor, classId) {
-    for (let tree of actor.hiddenTrees[classId]) {
-        actor.skillTrees.trees.push(tree);
-
-        for (let skill of tree.skills) {
-            if (skill instanceof Skill)
-                skill.relearn(actor);
-        }
-    }
-
-    // Clear storage for active tree.
-    actor.hiddenTrees[classId] = null;
-};
-
 //-----------------------------------------------------------------------------
 // DataManager
 //
@@ -1290,16 +1242,19 @@ DataManager.extractSaveContents = function(contents) {
         if (!actor || !actor.skillTrees)
             continue;
 
-        let jsonTrees = actor.skillTrees;
-        let trees = new SkillTrees();
+        let jsonTrees = actor.skillTrees.trees;
+        let pts = actor.skillTrees.pts;
+        actor.skillTrees = null;
 
-        actor.skillTrees = trees;
+        SkillTreesSystem.addActorTrees(actor);
+        SkillTreesSystem.addClassTrees(actor);
 
-        trees.pts = jsonTrees.pts;
+        // Load current actor and class trees.
+        SkillTreesSystem.loadTrees(jsonTrees, actor);
+        // Load current other trees.
+        SkillTreesSystem.loadOtherTrees(jsonTrees, actor);
 
-        SkillTreesSystem.loadTrees(jsonTrees, trees);
-
-        SkillTreesSystem.loadHiddenTrees(actor);
+        actor.skillTrees.pts = pts;
     }
 };
 
@@ -1307,21 +1262,84 @@ DataManager.extractSaveContents = function(contents) {
  * Reconstruct JS object of Skill Trees System classes.
  *
  * @param jsonTrees Json object.
- * @param trees STS object.
+ * @param actor Actor.
  */
-SkillTreesSystem.loadTrees = function(jsonTrees, trees) {
-    if (!jsonTrees.trees)
+SkillTreesSystem.loadTrees = function (jsonTrees, actor) {
+    if (!jsonTrees || !actor.skillTrees.trees)
         return;
 
-    for (let jsonTree of jsonTrees.trees) {
-        let tree = new SkillTree(jsonTree.name, jsonTree.symbol, []);
+    let i = 0;
 
-        trees.trees.push(tree);
+    let loadedActorTrees = [actor._actorId];
+    let loadedClassTrees = [actor._classId];
 
-        tree.points = jsonTree.points;
-        tree._classId = jsonTree._classId;
+    while (i < jsonTrees.length) {
+        let jsonTree = jsonTrees[i];
 
-        SkillTreesSystem.loadSkills(jsonTree, tree);
+        if (jsonTree._actorId > 0 && !loadedActorTrees.contains(jsonTree._actorId)) {
+            SkillTreesSystem.addActorTrees(actor, jsonTree._actorId);
+
+            loadedActorTrees.push(jsonTree._actorId);
+        }
+
+        if (jsonTree._classId > 0 && !loadedClassTrees.contains(jsonTree._classId)) {
+            SkillTreesSystem.addClassTrees(actor, jsonTree._classId);
+
+            loadedClassTrees.push(jsonTree._classId);
+        }
+
+        for (let actorTree of actor.skillTrees.trees) {
+            if (jsonTree.symbol !== actorTree.symbol)
+                continue;
+
+            actorTree.points = jsonTree.points;
+            actorTree.visibility = jsonTree.visibility;
+
+            SkillTreesSystem.loadSkills(jsonTree, actorTree, actor);
+
+            jsonTrees.splice(i--, 1);
+
+            break;
+        }
+
+        i++;
+    }
+};
+
+/**
+ * Reconstruct JS object of Skill Trees System classes.
+ *
+ * @param jsonTrees Json object.
+ * @param actor Actor.
+ */
+SkillTreesSystem.loadOtherTrees = function(jsonTrees, actor) {
+    if (!jsonTrees)
+        return;
+
+    let i = 0;
+
+    while (i < jsonTrees.length) {
+        let jsonTree = jsonTrees[i];
+
+        for (let otherTree of SkillTreesSystem.otherTrees) {
+            if (jsonTree.symbol !== otherTree.symbol)
+                continue;
+
+            let tree = otherTree.clone();
+
+            tree.points = jsonTree.points;
+            tree.visibility = jsonTree.visibility;
+
+            SkillTreesSystem.loadSkills(jsonTree, tree, actor);
+
+            jsonTrees.splice(i--, 1);
+
+            actor.skillTrees.trees.push(tree);
+
+            break;
+        }
+
+        i++;
     }
 };
 
@@ -1329,9 +1347,10 @@ SkillTreesSystem.loadTrees = function(jsonTrees, trees) {
  * Reconstruct JS object of Skill Trees System classes.
  *
  * @param jsonTree Json object.
- * @param tree STS object.
+ * @param actorTree STS object.
+ * @param actor Actor.
  */
-SkillTreesSystem.loadSkills = function(jsonTree, tree) {
+SkillTreesSystem.loadSkills = function(jsonTree, actorTree, actor) {
     if (!jsonTree.skills) {
         jsonTree.skills = [];
 
@@ -1339,141 +1358,18 @@ SkillTreesSystem.loadSkills = function(jsonTree, tree) {
     }
 
     for (let jsonSkill of jsonTree.skills) {
-        if (jsonSkill == null)
-            tree.skills.push(null);
-        else if (jsonSkill.type === "skill") {
-            let skill = new Skill(jsonSkill.lvls, [], []);
-
-            skill.level = jsonSkill.level;
-            SkillTreesSystem.loadRequirements(jsonSkill, skill);
-            SkillTreesSystem.loadOnLearnActions(jsonSkill, skill);
-
-            tree.skills.push(skill);
-        } else
-            tree.skills.push(new Arrow(jsonSkill._iconId));
-    }
-};
-
-/**
- * Reconstruct JS object of Skill Trees System classes.
- *
- * @param jsonSkill Json object.
- * @param skill STS object.
- */
-SkillTreesSystem.loadRequirements = function(jsonSkill, skill) {
-    if (!jsonSkill.reqs) {
-        jsonSkill.reqs = [];
-
-        return;
-    }
-
-    for (let jsonReqArr of jsonSkill.reqs) {
-        let reqArr = [];
-
-        for (let jsonReq of jsonReqArr)
-            reqArr.push(SkillTreesSystem.loadRequirement(jsonReq));
-
-        skill.reqs.push(reqArr);
-    }
-};
-
-/**
- * Reconstruct JS object of Skill Trees System classes.
- *
- * @param jsonSkill Json object.
- * @param skill STS object.
- */
-SkillTreesSystem.loadOnLearnActions = function(jsonSkill, skill) {
-    if (!jsonSkill.learnActions) {
-        jsonSkill.learnActions = [];
-
-        return;
-    }
-
-    for (let jsonOlaArr of jsonSkill.learnActions) {
-        let olaArr = [];
-
-        for (let jsonOla of jsonOlaArr)
-            olaArr.push(SkillTreesSystem.loadOnLearnAction(jsonOla));
-
-        skill.learnActions.push(olaArr);
-    }
-};
-
-/**
- * Reconstruct JS object of Skill Trees System classes.
- *
- * @param jsonReq Json object.
- * @return STS object.
- */
-SkillTreesSystem.loadRequirement = function(jsonReq) {
-    switch(jsonReq.type) {
-        case "points":
-            return new Cost(jsonReq.price);
-        case "tree_points":
-            return new TreePointsRequirement(jsonReq.points);
-        case "tree_skill_level":
-            return new SkillRequirement(jsonReq.lvls, jsonReq.lvl);
-        case "item":
-            return new ItemRequirement(jsonReq.dataClass, jsonReq.itemId, jsonReq.amount);
-        case "actor_level":
-            return new LevelRequirement(jsonReq.lvl);
-        case "game_variable":
-            return new VariableRequirement(jsonReq.varId, jsonReq.intVal);
-        case "game_switch":
-            return new SwitchRequirement(jsonReq.switchId, jsonReq.val);
-        case "stat":
-            return new SwitchRequirement(jsonReq.id, jsonReq.val);
-    }
-};
-
-/**
- * Reconstruct JS object of Skill Trees System classes.
- *
- * @param jsonOla Json object.
- * @return STS object.
- */
-SkillTreesSystem.loadOnLearnAction = function(jsonOla) {
-    switch (jsonOla.type) {
-        case "game_variable":
-            return new OnLearnChangeVariable(jsonOla.varId, jsonOla.inc)
-    }
-};
-
-/**
- * Reconstruct JS object of Skill Trees System classes.
- *
- * @param actor Actor.
- */
-SkillTreesSystem.loadHiddenTrees = function(actor) {
-    if (!actor.hiddenTrees)
-        return;
-
-    let hiddenTrees = {};
-
-    for (let k in actor.hiddenTrees) {
-        let jsonTrees = actor.hiddenTrees[k];
-
-        if (!jsonTrees)
+        if (!jsonSkill || jsonSkill.type !== "skill")
             continue;
 
-        let trees = [];
+        for (let skill of actorTree.skills) {
+            if (!skill || skill.type !== "skill" || skill.symbol !== jsonSkill.symbol)
+                continue;
 
-        for (let jsonTree of jsonTrees) {
-            let tree = new SkillTree(jsonTree.name, jsonTree.symbol, []);
+            skill.level = Math.min(skill.lvls.length, jsonSkill.level);
 
-            trees.push(tree);
-
-            tree.points = jsonTree.points;
-            tree._classId = jsonTree._classId;
-
-            SkillTreesSystem.loadSkills(jsonTree, tree);
+            skill.relearn(actor);
         }
-
-        hiddenTrees[k] = trees;
     }
-
-    actor.hiddenTrees = hiddenTrees;
 };
 
 SkillTreesSystem.SceneItemBaseApplyItem = Scene_ItemBase.prototype.applyItem;
@@ -1507,14 +1403,6 @@ SkillTreesSystem.resetSkillTrees = function(actor, item) {
         for (let tree of actor.skillTrees.trees)
             points += SkillTreesSystem.resetSkillTree(actor, tree);
 
-        for (let k in actor.hiddenTrees) {
-            if (!actor.hiddenTrees[k])
-                continue;
-
-            for (let tree of actor.hiddenTrees[k])
-                points += SkillTreesSystem.resetSkillTree(actor, tree);
-        }
-
         actor.addTreesPoints(points, 0);
     } else if (item.meta.resetSkillTrees === "actor") {
         if (!SkillTreesSystem.singlePointsPool) {
@@ -1531,18 +1419,6 @@ SkillTreesSystem.resetSkillTrees = function(actor, item) {
                 continue;
 
             points += SkillTreesSystem.resetSkillTree(actor, tree);
-        }
-
-        for (let k in actor.hiddenTrees) {
-            if (!actor.hiddenTrees[k])
-                continue;
-
-            for (let tree of actor.hiddenTrees[k]) {
-                if (tree._actorId !== actor._actorId)
-                    continue;
-
-                points += SkillTreesSystem.resetSkillTree(actor, tree);
-            }
         }
 
         actor.addTreesPoints(points, 0);
@@ -1563,18 +1439,6 @@ SkillTreesSystem.resetSkillTrees = function(actor, item) {
 
             if (points > 0)
                 actor.addTreesPoints(points, tree._classId);
-        }
-
-        for (let k in actor.hiddenTrees) {
-            if (!actor.hiddenTrees[k])
-                continue;
-
-            for (let tree of actor.hiddenTrees[k]) {
-                let points = SkillTreesSystem.resetSkillTree(actor, tree);
-
-                if (points > 0)
-                    actor.addTreesPoints(points, tree._classId);
-            }
         }
     }
 };

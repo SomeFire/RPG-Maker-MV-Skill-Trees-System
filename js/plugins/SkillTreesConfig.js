@@ -138,6 +138,7 @@
  *
  * Version 1.8:
  * - Fixed bug which gives skill point on resetting empty tree.
+ * - Trees are updatable now.
  *
  */
 
@@ -168,12 +169,14 @@ class TreeObject {
  */
 class Skill extends TreeObject {
     /**
+     * @param symbol Symbol.
      * @param levels Array of skill IDs.
      * @param requirements Array of requirements for every skill level (array of arrays of requirements).
      * @param onLearnActions Array of onlearn actions for every skill level (array of arrays of actions).
      */
-    constructor(levels, requirements, onLearnActions) {
+    constructor(symbol, levels, requirements, onLearnActions) {
         super("skill");
+        this.symbol = symbol;
         this.lvls = levels;
         this.level = 0;
         this.reqs = requirements;
@@ -269,7 +272,7 @@ class Skill extends TreeObject {
     }
 
     clone() {
-        var copy = new Skill(this.lvls, this.reqs, this.learnActions);
+        var copy = new Skill(this.symbol, this.lvls, this.reqs, this.learnActions);
 
         copy.level = this.level;
 
@@ -314,6 +317,7 @@ class SkillTree {
         this.points = 0;
         this._classId = 0;
         this._actorId = 0;
+        this.visibility = false;
     }
 
     setActorId(actorId) {
@@ -324,6 +328,28 @@ class SkillTree {
         this._classId = clsId;
     }
 
+    isVisible() {
+        return this.visibility;
+    }
+
+    hide(actor) {
+        this.visibility = false;
+
+        for (let skill of this.skills) {
+            if (skill instanceof Skill)
+                skill.forget(actor);
+        }
+    }
+
+    relearn(actor) {
+        this.visibility = true;
+
+        for (let skill of this.skills) {
+            if (skill instanceof Skill)
+                skill.relearn(actor);
+        }
+    }
+
     clone() {
         var copy = new SkillTree();
 
@@ -332,6 +358,7 @@ class SkillTree {
         copy.points = this.points;
         copy._classId = this._classId;
         copy._actorId = this._actorId;
+        copy.visibility = this.visibility;
         copy.skills = [];
 
         this.skills.forEach(function(skill, i, arr) {
@@ -419,6 +446,17 @@ class SkillTrees {
             tree.setClassId(clsId);
     }
 
+    getTree(symbol) {
+        let res = null;
+
+        this.trees.forEach(tree => {
+            if (tree.symbol === symbol)
+                res = tree;
+        });
+
+        return res;
+    }
+
     clone() {
         var copy = new SkillTrees();
 
@@ -436,8 +474,6 @@ class SkillTrees {
 
 /**
  * Interface for skill requirements. See implementations.
- *
- * WARNING! Don't forget to add loading code in {@link SkillTreesSystem#loadRequirement} in the SkillTreesSystem.js.
  */
 class Requirement {
     /**
@@ -858,12 +894,13 @@ function changeVar(variableId, increment) {
 /**
  * Tree skill object.
  *
+ * @param symbol Symbol.
  * @param skillIds Array of skill IDs.
  * @param requirements Array of requirements for every skill level.
  * @param onLearnActions On learn actions.
  */
-function skill(skillIds, requirements, onLearnActions) {
-    return new Skill(skillIds, requirements, onLearnActions);
+function skill(symbol, skillIds, requirements, onLearnActions) {
+    return new Skill(symbol, skillIds, requirements, onLearnActions);
 }
 
 /**
@@ -963,6 +1000,8 @@ Game_Actor.prototype.addTree = function(skillTreeObject) {
         throw new TypeError("You should add a new SkillTree object.");
 
     this.skillTrees.trees.push(skillTreeObject);
+
+    skillTreeObject.visibility = true;
 };
 
 /**
@@ -1162,46 +1201,46 @@ SkillTreesSystem.tryLearnAll = function(actor, symbol) {
 //=============================================================================
 
 // This skill is a single-level skill.
-guard = skill([2], [ // Skill ID from database skills.
+guard = skill('guard', [2], [ // Skill ID from database skills.
     [cost(1)]        // Skill requirement. This skill cost 1 skill point.
 ]);
 // This skill is a 3-level skill.
-combatReflexes = skill([11, 12, 13], [ // Skill IDs from database skills.
+combatReflexes = skill('combatReflexes', [11, 12, 13], [ // Skill IDs from database skills.
     [cost(1)],                         // Skill requirement for 1 level (skill ID = 11)
     [cost(1)],                         // Skill requirement for 2 level (skill ID = 12)
     [cost(1)]                          // Skill requirement for 3 level (skill ID = 13)
 ]);
-dualAttack = skill([3], [
+dualAttack = skill('dual', [3], [
     [cost(1), skillReq(combatReflexes, 1)] // Skill cost 1 skill point and requires 'combatReflexes' skill
 ]);                                        // learned at 1 level. Level can be skipped, see next skill.
-doubleAttack = skill([4], [
+doubleAttack = skill('double', [4], [
     [cost(1), lvl(3), skillReq(combatReflexes)] // Same as above, but can be learned by heroes with level 3 or above.
 ]);
-tripleAttack = skill([5], [
+tripleAttack = skill('triple', [5], [
     [cost(1), lvl(5), skillReq(combatReflexes, 2), skillReq(doubleAttack)] // Requires 2 skills.
 ]);
-berserkerDance = skill([14], [
+berserkerDance = skill('berserkerDance', [14], [
     [cost(3), skillReq(tripleAttack), itemReq('item', 1, 2)] // Requires 2 consumable items with ID 1.
 ]);
-rampage = skill([15], [
+rampage = skill('rampage', [15], [
     [cost(3), treePoints(9), skillReq(combatReflexes, 3), skillReq(berserkerDance)]
 ]);
-armorBreak = skill([16, 17, 18], [
+armorBreak = skill('armorBreak', [16, 17, 18], [
     [cost(1), treePoints(5), skillReq(berserkerDance)],
     [cost(2), atk(30)],
     [cost(3), itemReq('item', 1, 5)]
 ]);
-spark = skill([10], [
+spark = skill('spark', [10], [
     [cost(1)]
 ]);
 
 
-guard2 = skill([2], [
+guard2 = skill('guard2', [2], [
     [cost(1), switchReq(1)], // Requires switch 1 to be true.
 ], [
     [changeVar(1, 2)] // On learn action, which increase the game variable 1 by 2.
 ]);
-combatReflexes2 = skill([11, 12, 13], [
+combatReflexes2 = skill('combatReflexes2', [11, 12, 13], [
     [cost(1)],
     [cost(1)],
     [cost(1)]
@@ -1210,22 +1249,22 @@ combatReflexes2 = skill([11, 12, 13], [
      [changeVar(1, 2)], // On skill upgrade to second level will increase the game variable 1 by 2.
      [changeVar(1, 3)]  // On skill upgrade to third  level will increase the game variable 1 by 3.
 ]);
-dualAttack2 = skill([3], [
+dualAttack2 = skill('dual2', [3], [
     [cost(1), skillReq(combatReflexes2, 1), varReq(1, 2)] // Requires game variable 1 to be 2 or greater.
 ]);
-doubleAttack2 = skill([4], [
+doubleAttack2 = skill('double2', [4], [
     [cost(1), skillReq(combatReflexes2), lvl(3)]
 ]);
-tripleAttack2 = skill([5], [
+tripleAttack2 = skill('triple2', [5], [
     [cost(1), lvl(5), skillReq(combatReflexes2, 2), skillReq(doubleAttack2)]
 ]);
-berserkerDance2 = skill([14], [
+berserkerDance2 = skill('berserkerDance2', [14], [
     [cost(3), skillReq(tripleAttack2)]
 ]);
-rampage2 = skill([15], [
+rampage2 = skill('rampage2', [15], [
     [cost(3), skillReq(combatReflexes2, 3), treePoints(9), skillReq(berserkerDance2)]
 ]);
-armorBreak2 = skill([16, 17, 18], [
+armorBreak2 = skill('armorBreak2', [16, 17, 18], [
     [cost(1), treePoints(5), skillReq(berserkerDance2)],
     [cost(2)],
     [cost(3)]
@@ -1298,7 +1337,7 @@ SkillTreesSystem.actor2trees = {
         ])]
     ),
     2: new SkillTrees(55,
-        [new SkillTree('Berserk', 'berserk_tree2', [
+        [new SkillTree('Berserk2', 'berserk_tree2', [
             null,   null,           null,          combatReflexes2,     null,       guard2,           null,
             null,   null,           arrowLeft,     arrowDown,          null,       null,            null,
             null,   dualAttack2,     null,          doubleAttack2,       null,       null,            null,
@@ -1472,3 +1511,18 @@ SkillTreesSystem.class2trees = {
         ])]
     )
 };
+
+/**
+ * Contain trees, which not belong to specific actor or class.
+ * This array is used to load listed trees when player loading saved game.
+ * Any tree must be inside of {@link SkillTreesSystem#actor2trees}, {@link SkillTreesSystem#class2trees} setups or
+ * {@link SkillTreesSystem#otherTrees} array, otherwise it can't be loaded.
+ */
+SkillTreesSystem.otherTrees = [
+    SkillTreesSystem.separateTree,
+    SkillTreesSystem.bigTree,
+    new SkillTree('Just Another Tree', 'jat', [
+        null,   null,           null,          combatReflexes,     null,       null,            null,
+        null,   null,           null,          null,               null,       null,            null,
+    ])
+];
