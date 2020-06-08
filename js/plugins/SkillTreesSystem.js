@@ -132,6 +132,10 @@
  *
  *     actor.getTreesPoints(skillTree);
  *
+ * To hide specific tree for the actor:
+ *
+ *     actor.hideTree(treeSymbol);
+ *
  * To learn skills by script call:
  *
  *     SkillTreesSystem.forceLearn(actor, treeSymbol, skillId);
@@ -199,6 +203,7 @@
  * - Fixed bug which gives skill point on resetting empty tree.
  * - Trees are updatable now.
  * - Reworked separate points pool.
+ * - Added script call to hide tree.
  *
  */
 

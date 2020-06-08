@@ -39,6 +39,11 @@
  *  trees described here are added automatically on the game start
  *  to the actors and actors with specified class respectively.
  * ----------------------------------------------------------------------------
+ * How to hide tree:
+ *     actor.hideTree(symbol);
+ *
+ *  symbol - Symbol of SkillTree object.
+ * ----------------------------------------------------------------------------
  * How to add skill points:
  *     actor.addTreesPoints(points, classId);
  *
@@ -140,6 +145,7 @@
  * - Fixed bug which gives skill point on resetting empty tree.
  * - Trees are updatable now.
  * - Reworked separate points pool.
+ * - Added script call to hide tree.
  *
  */
 
@@ -997,6 +1003,15 @@ Game_Actor.prototype.addTree = function(skillTreeObject) {
     this.skillTrees.trees.push(skillTreeObject);
 
     skillTreeObject.visibility = true;
+};
+
+/**
+ * Hide specific skill tree for the actor.
+ *
+ * @param treeSymbol Tree symbol.
+ */
+Game_Actor.prototype.hideTree = function(treeSymbol) {
+    this.skillTrees.getTree(treeSymbol).hide(this);
 };
 
 /**
