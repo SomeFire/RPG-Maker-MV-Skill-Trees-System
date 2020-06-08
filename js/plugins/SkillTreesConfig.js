@@ -1124,7 +1124,7 @@ SkillTreesSystem._learn = function(actor, symbol, id, force) {
 /**
  * Learn all skills for actor in specified tree or for all trees if tree is not specified.
  * Skill requirements will be ignored.
- * If you want to spend skill points or add skill points to the tree - you should to it manually.
+ * If you want to spend skill points or add skill points to the tree - you should do it manually.
  *
  * @param actor Actor.
  * @param symbol SkillTree symbol. Optional parameter.
