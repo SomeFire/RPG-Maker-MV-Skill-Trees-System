@@ -33,7 +33,8 @@
  * How to add tree:
  *     actor.addTree(skillTree);
  *
- *  skillTree - SkillTree object. You need to create it in the end of this file.
+ *  skillTree - SkillTree object. You need to create it in the end of this file
+ *     and add to `SkillTreesSystem.otherTrees` array.
  *
  *  Or use SkillTreesSystem.actor2trees and SkillTreesSystem.class2trees:
  *  trees described here are added automatically on the game start
@@ -383,6 +384,10 @@ class SkillTree {
  * This object represents skill trees for actor.
  */
 class SkillTrees {
+    /**
+     * @param freePoints Initial amount of free skill points.
+     * @param trees Array of tree objects. Should contain only skills, arrows and nulls.
+     */
     constructor(freePoints, trees) {
         if (!freePoints)
             freePoints = 0;
@@ -905,6 +910,23 @@ function skill(symbol, skillIds, requirements, onLearnActions) {
 }
 
 /**
+ * @param name Tree name.
+ * @param symbol Tree symbol.
+ * @param treeObjs Array of tree objects. Should contain only skills, arrows and nulls.
+ */
+function skillTree(name, symbol, treeObjs) {
+    return new SkillTree(name, symbol, treeObjs);
+}
+
+/**
+ * @param freePoints Initial amount of free skill points.
+ * @param trees Array of tree objects. Should contain only skills, arrows and nulls.
+ */
+function skillTrees(freePoints, trees) {
+    return new SkillTrees(freePoints, trees);
+}
+
+/**
  * @param value Actor's max HP value.
  * @return {StatRequirement}
  */
@@ -998,7 +1020,12 @@ Game_Actor.prototype.addTree = function(skillTreeObject) {
         this.skillTrees = new SkillTrees();
 
     if (!skillTreeObject instanceof SkillTree)
-        throw new TypeError("You should add a new SkillTree object.");
+        throw new TypeError("Expected a SkillTree object.");
+
+    if (!SkillTreesSystem.otherTrees.contains(skillTreeObject)) {
+        throw new ReferenceError("Expected a SkillTree object from `SkillTreesSystem.otherTrees` array. " +
+            "Tree name = " + skillTreeObject.name);
+    }
 
     this.skillTrees.trees.push(skillTreeObject);
 
@@ -1251,9 +1278,9 @@ guard2 = skill('guard2', [2], [
     [changeVar(1, 2)] // On learn action, which increase the game variable 1 by 2.
 ]);
 combatReflexes2 = skill('combatReflexes2', [11, 12, 13], [
-    [cost(1)],
-    [cost(1)],
-    [cost(1)]
+    [cost(1)],          // Skill requirement for 1 level (skill ID = 11)
+    [cost(1)],          // Skill requirement for 2 level (skill ID = 12)
+    [cost(1)]           // Skill requirement for 3 level (skill ID = 13)
 ], [
      [changeVar(1, 1)], // On skill learn will increase the game variable 1 by 1.
      [changeVar(1, 2)], // On skill upgrade to second level will increase the game variable 1 by 2.
@@ -1311,8 +1338,8 @@ arrowLeft = new Arrow(29);
  * @type {{"1": actorId, "2": SkillTrees}}
  */
 SkillTreesSystem.actor2trees = {
-    1: new SkillTrees(100, // Character will have 100 skill points to spend at the beginning.
-        [new SkillTree('Berserk', 'berserk_tree', [
+    1: skillTrees(100, [// Character will have 100 skill points to spend at the beginning.
+        skillTree('Berserk', 'berserk_tree', [
             // Null represents empty square in the skill window.
             // Arrow points from one skill to another.
             null,   null,           null,          combatReflexes,     null,       guard,           null,
@@ -1324,7 +1351,8 @@ SkillTreesSystem.actor2trees = {
             null,   null,           null,          berserkerDance,     null,       null,            null,
             null,   null,           null,          arrowDown,          arrowRight, null,            null,
             null,   null,           null,          rampage,            null,       armorBreak,      null,
-        ]), new SkillTree('Second Tree', 'second_tree', [
+        ]),
+        skillTree('Second Tree', 'second_tree', [
             null,   null,           null,          combatReflexes,     null,       null,            null,
             null,   null,           arrowLeft,     arrowDown,          null,       null,            null,
             null,   dualAttack,     null,          doubleAttack,       null,       null,            null,
@@ -1334,7 +1362,8 @@ SkillTreesSystem.actor2trees = {
             null,   null,           null,          berserkerDance,     null,       null,            null,
             null,   null,           null,          arrowDown,          null,       null,            null,
             null,   null,           null,          rampage,            null,       null,            null,
-        ]), new SkillTree('Third Tree', 'third_tree', [
+        ]),
+        skillTree('Third Tree', 'third_tree', [
             null,   null,           null,          null,               null,       guard,           null,
             null,   null,           null,          null,               null,       null,            null,
             null,   null,           null,          null,               null,       null,            null,
@@ -1346,8 +1375,8 @@ SkillTreesSystem.actor2trees = {
             null,   null,           null,          null,               null,       null,            null,
         ])]
     ),
-    2: new SkillTrees(100,
-        [new SkillTree('Berserk2', 'berserk_tree2', [
+    2: skillTrees(100, [
+        skillTree('Berserk2', 'berserk_tree2', [
             null,   null,           null,          combatReflexes2,     null,       guard2,           null,
             null,   null,           arrowLeft,     arrowDown,          null,       null,            null,
             null,   dualAttack2,     null,          doubleAttack2,       null,       null,            null,
@@ -1368,8 +1397,8 @@ SkillTreesSystem.actor2trees = {
  * @private
  */
 function _sample_sameTreeSetupForDifferentActors() {
-    return new SkillTrees(100,
-        [new SkillTree('Same Trees 1', 'same_trees_1', [
+    return skillTrees(100, [
+        skillTree('Same Trees 1', 'same_trees_1', [
             null,   null,           null,          combatReflexes,     null,       guard,           null,
             null,   null,           arrowLeft,     arrowDown,          null,       null,            null,
             null,   dualAttack,     null,          doubleAttack,       null,       null,            null,
@@ -1379,7 +1408,8 @@ function _sample_sameTreeSetupForDifferentActors() {
             null,   null,           null,          berserkerDance,     null,       null,            null,
             null,   null,           null,          null,               null,       null,            null,
             null,   null,           null,          null,               null,       null,            null,
-        ]), new SkillTree('Same Trees 2', 'same_trees_2', [
+        ]),
+        skillTree('Same Trees 2', 'same_trees_2', [
             null,   null,           null,          combatReflexes,     null,       null,            null,
             null,   null,           arrowLeft,     arrowDown,          null,       null,            null,
             null,   dualAttack,     null,          doubleAttack,       null,       null,            null,
@@ -1389,7 +1419,8 @@ function _sample_sameTreeSetupForDifferentActors() {
             null,   null,           null,          berserkerDance,     null,       null,            null,
             null,   null,           null,          null,               null,       null,            null,
             null,   null,           null,          null,               null,       null,            null,
-        ]), new SkillTree('Same Trees 3', 'same_trees_3', [
+        ]),
+        skillTree('Same Trees 3', 'same_trees_3', [
             null,   null,           null,          null,               null,       guard,           null,
             null,   null,           null,          null,               null,       null,            null,
             null,   null,           null,          null,               null,       null,            null,
@@ -1403,8 +1434,7 @@ function _sample_sameTreeSetupForDifferentActors() {
     )
 }
 
-// WARNING! You can't reset separate trees without single points pool.
-SkillTreesSystem.separateTree = new SkillTree('Fourth Tree', 'f_tree', [
+SkillTreesSystem.separateTree = skillTree('Fourth Tree', 'f_tree', [
     null,   null,           null,          combatReflexes,     null,       null,            null,
     null,   null,           null,          null,               null,       null,            null,
     null,   null,           null,          null,               null,       null,            null,
@@ -1417,12 +1447,10 @@ SkillTreesSystem.separateTree = new SkillTree('Fourth Tree', 'f_tree', [
 ]);
 
 /**
- * WARNING! You can't reset separate trees without single points pool.
- *
  * This tree is used to check tree longer and wider than 1 page.
  * To see it normally - set {@link SkillTreesSystem#skillWindowMaxCols} to 11.
  */
-SkillTreesSystem.bigTree = new SkillTree('Big Tree (see comments)', 'big_tree', [
+SkillTreesSystem.bigTree = skillTree('Big Tree (see comments)', 'big_tree', [
     null,   null,           null,          combatReflexes,     null,       guard,           null,          combatReflexes,     null,       guard,           null,
     null,   null,           arrowLeft,     arrowDown,          null,       null,            arrowLeft,     arrowDown,          null,       null,            null,
     null,   dualAttack,     null,          doubleAttack,       null,       dualAttack,      null,          doubleAttack,       null,       null,            null,
@@ -1456,8 +1484,8 @@ SkillTreesSystem.bigTree = new SkillTree('Big Tree (see comments)', 'big_tree', 
  * @type {{"1": classId, "2": SkillTrees}}
  */
 SkillTreesSystem.class2trees = {
-    1: new SkillTrees(10,
-        [new SkillTree('Class 1', 'Class 1', [
+    1: skillTrees(10, [
+        skillTree('Class 1', 'Class 1', [
             // Null represents empty square in the skill window.
             // Arrow points from one skill to another.
             null,   null,           null,          combatReflexes,     null,       guard,           null,
@@ -1469,7 +1497,8 @@ SkillTreesSystem.class2trees = {
             null,   null,           null,          berserkerDance,     null,       null,            null,
             null,   null,           null,          arrowDown,          arrowRight, null,            null,
             null,   null,           null,          rampage,            null,       armorBreak,      null,
-        ]), new SkillTree('Class 11', 'Class 11', [
+        ]),
+        skillTree('Class 11', 'Class 11', [
             null,   null,           null,          combatReflexes,     null,       null,            null,
             null,   null,           arrowLeft,     arrowDown,          null,       null,            null,
             null,   dualAttack,     null,          doubleAttack,       null,       null,            null,
@@ -1481,8 +1510,8 @@ SkillTreesSystem.class2trees = {
             null,   null,           null,          rampage,            null,       null,            null,
         ])]
     ),
-    2:  new SkillTrees(20,
-        [new SkillTree('Class 2', 'Class 2', [
+    2: skillTrees(20, [
+        skillTree('Class 2', 'Class 2', [
             null,   null,           null,          null,               null,       guard,           null,
             null,   null,           null,          null,               null,       null,            null,
             null,   null,           null,          null,               null,       null,            null,
@@ -1494,8 +1523,8 @@ SkillTreesSystem.class2trees = {
             null,   null,           null,          null,               null,       null,            null,
         ])]
     ),
-    3:  new SkillTrees(30,
-        [new SkillTree('Class 3', 'Class 3', [
+    3: skillTrees(30, [
+        skillTree('Class 3', 'Class 3', [
             null,   null,           null,          null,               null,       guard,           null,
             null,   null,           null,          null,               null,       null,            null,
             null,   null,           null,          null,               null,       null,            null,
@@ -1507,8 +1536,8 @@ SkillTreesSystem.class2trees = {
             null,   null,           null,          null,               null,       null,            null,
         ])]
     ),
-    4:  new SkillTrees(40,
-        [new SkillTree('Class 4', 'Class 4', [
+    4: skillTrees(40, [
+        skillTree('Class 4', 'Class 4', [
             null,   null,           null,          null,               null,       guard,           null,
             null,   null,           null,          null,               null,       null,            null,
             null,   null,           null,          null,               null,       null,            null,
@@ -1531,7 +1560,7 @@ SkillTreesSystem.class2trees = {
 SkillTreesSystem.otherTrees = [
     SkillTreesSystem.separateTree,
     SkillTreesSystem.bigTree,
-    new SkillTree('Just Another Tree', 'jat', [
+    skillTree('Just Another Tree', 'jat', [
         null,   null,           null,          combatReflexes,     null,       null,            null,
         null,   null,           null,          null,               null,       null,            null,
     ])

@@ -124,7 +124,9 @@
  *     actor.addTree(skillTree);
  *     actor.addTreesPoints(points, classId);
  *
- *     Or use SkillTreesSystem.actor2trees and SkillTreesSystem.class2trees:
+ *     You need to create skillTree in the end of `SkillTreesConfig.js` file
+ *     and add to `SkillTreesSystem.otherTrees` array.
+ *     Or use `SkillTreesSystem.actor2trees` and `SkillTreesSystem.class2trees`:
  *     trees described here are added automatically on the game start
  *     to the actors and actors with specified class respectively.
  *
