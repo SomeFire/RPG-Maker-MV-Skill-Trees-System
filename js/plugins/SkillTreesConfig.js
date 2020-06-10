@@ -144,6 +144,7 @@
  *
  * Version 1.8:
  * - Fixed bug which gives skill point on resetting empty tree.
+ * - Fixed MP and TP naming in skill description window.
  * - Trees are updatable now.
  * - Reworked separate points pool.
  * - Added script call to hide tree.

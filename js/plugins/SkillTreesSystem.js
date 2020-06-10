@@ -203,6 +203,7 @@
  *
  * Version 1.8:
  * - Fixed bug which gives skill point on resetting empty tree.
+ * - Fixed MP and TP naming in skill description window.
  * - Trees are updatable now.
  * - Reworked separate points pool.
  * - Added script call to hide tree.
@@ -1029,14 +1030,18 @@ Description_Window.prototype.drawCastCost = function(skill, x, y) {
 
     let text = "";
 
-    if (skill.mpCost)
-        text += skill.mpCost + " \\C[" + (Yanfly.Param && Yanfly.Param.ColorMpCost || 23) + "]MP\\C";
+    if (skill.mpCost) {
+        text += skill.mpCost + " \\C[" + (Yanfly.Param && Yanfly.Param.ColorMpCost || 23) + "]" +
+            TextManager.mpA + "\\C";
+    }
 
     if (skill.mpCost && skill.tpCost)
         text += ", ";
 
-    if (skill.tpCost)
-        text += skill.tpCost + " \\C[" + (Yanfly.Param && Yanfly.Param.ColorTpCost || 29) + "]TP\\C";
+    if (skill.tpCost) {
+        text += skill.tpCost + " \\C[" + (Yanfly.Param && Yanfly.Param.ColorTpCost || 29) + "]" +
+            TextManager.tpA + "\\C";
+    }
 
     this.drawTextEx(text, x, y);
 };
