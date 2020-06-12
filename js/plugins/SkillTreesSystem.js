@@ -74,7 +74,7 @@
  * @param Earning points text
  * @parent ---Text---
  * @desc Text to describe how much skill points is earned.
- * @default SP earned
+ * @default SP earned.
  *
  * @param No trees text
  * @parent ---Text---
@@ -149,6 +149,9 @@
  *
  * See SkillTreesConfig.js for details.
  *
+ * To show scene with skill trees:
+ *     SceneManager.push(Scene_SkillTrees)
+ *
  * ----------------------------------------------------------------------------
  *
  * If something works not as expected - check console log (F8 should open it).
@@ -158,7 +161,7 @@
  * ============================================================================
  *
  * Free to use in any RPG Maker MV project including commercial.
- * Please, credit "SomeFire" and let me know about your game.
+ * Credit "SomeFire" and, please, let me know about your game.
  *
  * ============================================================================
  * Changelog

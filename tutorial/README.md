@@ -7,6 +7,8 @@ SkillTreesConfig.js contains "how to" guide in description, and 3 chapters:
 
 To create your own skill trees you must add skills and trees to SkillTreesConfig.js
 
+To show scene with skill trees use script command `SceneManager.push(Scene_SkillTrees)`.
+
 # Structure
 
 There are 3 entities: `Skill`, `Tree` and `SkillTrees`.

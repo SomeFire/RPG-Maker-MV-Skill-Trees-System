@@ -30,6 +30,9 @@
  * Because it is Java*Cough*Script you should create trees in the end of file.
  *
  * ----------------------------------------------------------------------------
+ * How to show scene with skill trees to player:
+ *     SceneManager.push(Scene_SkillTrees)
+ * ----------------------------------------------------------------------------
  * How to add tree:
  *     actor.addTree(skillTree);
  *
@@ -99,7 +102,7 @@
  * ============================================================================
  *
  * Free to use in any RPG Maker MV project including commercial.
- * Please, credit "SomeFire" and let me know about your game.
+ * Credit "SomeFire" and, please, let me know about your game.
  *
  * ============================================================================
  * Changelog
@@ -1583,7 +1586,7 @@ SkillTreesSystem.bigTree = skillTree('Big Tree (see comments)', 'big_tree', [
  * @type {{"1": classId, "2": SkillTrees}}
  */
 SkillTreesSystem.class2trees = {
-    1: skillTrees(10, [
+    1: skillTrees(10, [ // Actor will receive additional points every time he takes new class.
         skillTree('Class 1', 'Class 1', [
             // Null represents empty square in the skill window.
             // Arrow points from one skill to another.
