@@ -3,7 +3,7 @@
 //=============================================================================
 
 /*:
- * @plugindesc v1.7. Basic skill trees in a separate scene.
+ * @plugindesc v1.8. Basic skill trees in a separate scene.
  *
  * @author SomeFire
  *
@@ -30,14 +30,23 @@
  * Because it is Java*Cough*Script you should create trees in the end of file.
  *
  * ----------------------------------------------------------------------------
+ * How to show scene with skill trees to player:
+ *     SceneManager.push(Scene_SkillTrees)
+ * ----------------------------------------------------------------------------
  * How to add tree:
  *     actor.addTree(skillTree);
  *
- *  skillTree - SkillTree object. You need to create it in the end of this file.
+ *  skillTree - SkillTree object. You need to create it in the end of this file
+ *     and add to `SkillTreesSystem.otherTrees` array.
  *
  *  Or use SkillTreesSystem.actor2trees and SkillTreesSystem.class2trees:
  *  trees described here are added automatically on the game start
  *  to the actors and actors with specified class respectively.
+ * ----------------------------------------------------------------------------
+ * How to hide tree:
+ *     actor.hideTree(symbol);
+ *
+ *  symbol - Symbol of SkillTree object.
  * ----------------------------------------------------------------------------
  * How to add skill points:
  *     actor.addTreesPoints(points, classId);
@@ -93,7 +102,7 @@
  * ============================================================================
  *
  * Free to use in any RPG Maker MV project including commercial.
- * Please, credit "SomeFire" and let me know about your game.
+ * Credit "SomeFire" and, please, let me know about your game.
  *
  * ============================================================================
  * Changelog
@@ -138,6 +147,10 @@
  *
  * Version 1.8:
  * - Fixed bug which gives skill point on resetting empty tree.
+ * - Fixed MP and TP naming in skill description window.
+ * - Trees are updatable now.
+ * - Reworked separate points pool.
+ * - Added script call to hide tree.
  *
  */
 
@@ -168,12 +181,14 @@ class TreeObject {
  */
 class Skill extends TreeObject {
     /**
+     * @param symbol Symbol.
      * @param levels Array of skill IDs.
      * @param requirements Array of requirements for every skill level (array of arrays of requirements).
      * @param onLearnActions Array of onlearn actions for every skill level (array of arrays of actions).
      */
-    constructor(levels, requirements, onLearnActions) {
+    constructor(symbol, levels, requirements, onLearnActions) {
         super("skill");
+        this.symbol = symbol;
         this.lvls = levels;
         this.level = 0;
         this.reqs = requirements;
@@ -269,7 +284,7 @@ class Skill extends TreeObject {
     }
 
     clone() {
-        var copy = new Skill(this.lvls, this.reqs, this.learnActions);
+        var copy = new Skill(this.symbol, this.lvls, this.reqs, this.learnActions);
 
         copy.level = this.level;
 
@@ -314,6 +329,7 @@ class SkillTree {
         this.points = 0;
         this._classId = 0;
         this._actorId = 0;
+        this.visibility = false;
     }
 
     setActorId(actorId) {
@@ -324,6 +340,28 @@ class SkillTree {
         this._classId = clsId;
     }
 
+    isVisible() {
+        return this.visibility;
+    }
+
+    hide(actor) {
+        this.visibility = false;
+
+        for (let skill of this.skills) {
+            if (skill instanceof Skill)
+                skill.forget(actor);
+        }
+    }
+
+    relearn(actor) {
+        this.visibility = true;
+
+        for (let skill of this.skills) {
+            if (skill instanceof Skill)
+                skill.relearn(actor);
+        }
+    }
+
     clone() {
         var copy = new SkillTree();
 
@@ -332,6 +370,7 @@ class SkillTree {
         copy.points = this.points;
         copy._classId = this._classId;
         copy._actorId = this._actorId;
+        copy.visibility = this.visibility;
         copy.skills = [];
 
         this.skills.forEach(function(skill, i, arr) {
@@ -349,6 +388,10 @@ class SkillTree {
  * This object represents skill trees for actor.
  */
 class SkillTrees {
+    /**
+     * @param freePoints Initial amount of free skill points.
+     * @param trees Array of tree objects. Should contain only skills, arrows and nulls.
+     */
     constructor(freePoints, trees) {
         if (!freePoints)
             freePoints = 0;
@@ -358,7 +401,7 @@ class SkillTrees {
         else if (trees instanceof SkillTree)
             trees = [trees];
 
-        this.pts = [freePoints];
+        this.pts = {0: freePoints};
         this.trees = trees;
     }
 
@@ -386,27 +429,21 @@ class SkillTrees {
      * Must be called only inside actor.addTreesPoints() (because we can't access JP from here).
      *
      * @param val Value.
-     * @param clsId Class id.
+     * @param id Class id or tree symbol (for other trees).
      * @returns {*}
      */
-    _addPoints(val, clsId) {
+    _addPoints(val, id) {
         // YEP job points are given in YEP plugins
         if (SkillTreesSystem.useJP())
-            throw new Error("SkillTrees._points must be called only inside actor.getTreesPoints().");
+            throw new Error("SkillTrees._addPoints must be called only inside actor.addTreesPoints().");
 
         if (SkillTreesSystem.singlePointsPool)
-            clsId = 0;
-        else if (!clsId || clsId <= 0)
-            throw new Error("In case of separate points pool - specify class id for method SkillTrees#addPoints().");
+            id = 0;
 
-        // YEP job points are given in YEP plugins
-        if (SkillTreesSystem.useJP())
-            return;
-
-        if (this.pts[clsId])
-            this.pts[clsId] += val;
+        if (this.pts[id])
+            this.pts[id] += val;
         else
-            this.pts[clsId] = val;
+            this.pts[id] = val;
     }
 
     setActorId(actorId) {
@@ -419,11 +456,22 @@ class SkillTrees {
             tree.setClassId(clsId);
     }
 
-    clone() {
-        var copy = new SkillTrees();
+    getTree(symbol) {
+        let res = null;
 
-        for (let i = 0; i < this.pts.length; i++) {
-            copy.pts[i] = this.pts[i];
+        this.trees.forEach(tree => {
+            if (tree.symbol === symbol)
+                res = tree;
+        });
+
+        return res;
+    }
+
+    clone() {
+        let copy = new SkillTrees();
+
+        for (let key in this.pts) {
+            copy.pts[key] = this.pts[key];
         }
 
         this.trees.forEach(function(tree, i, arr) {
@@ -436,8 +484,6 @@ class SkillTrees {
 
 /**
  * Interface for skill requirements. See implementations.
- *
- * WARNING! Don't forget to add loading code in {@link SkillTreesSystem#loadRequirement} in the SkillTreesSystem.js.
  */
 class Requirement {
     /**
@@ -497,16 +543,16 @@ class Cost extends Requirement {
     }
 
     use(actor, tree) {
-        let clsId = 0;
+        let treeId = 0;
 
         if (!SkillTreesSystem.singlePointsPool) {
-            clsId = tree._classId;
+            treeId = tree._classId;
 
-            if (clsId === 0)
-                clsId = actor._classId;
+            if (treeId === 0)
+                treeId = tree.symbol;
         }
 
-        actor.addTreesPoints(-this.price, clsId);
+        actor.addTreesPoints(-this.price, treeId);
         tree.points += this.price;
     }
 }
@@ -782,6 +828,94 @@ class OnLearnChangeVariable extends OnLearnAction {
 }
 
 /**
+ * Will call common event with specified ID.
+ *
+ * WARNING! Some event actions have no immediate effect, so, game can freezes until effect's end.
+ * Or effect freezes while you are in the menu.
+ * For example, text messages will appear only when you close menu and return to the map.
+ */
+class OnLearnCommonEvent extends OnLearnAction {
+    /**
+     * @param id Common event ID.
+     */
+    constructor(id) {
+        super("common_event");
+        this.id = id;
+    }
+
+    action() {
+        let interpreter = $gameMap._interpreter;
+
+        // backup
+        let branch = interpreter._branch;
+        let character = interpreter._character;
+        let childInterpreter = interpreter._childInterpreter;
+        let comments = interpreter._comments;
+        let depth = interpreter._depth;
+        let eventId = interpreter._eventId;
+        let frameCount = interpreter._frameCount;
+        let freezeChecker = interpreter._freezeChecker;
+        let indent = interpreter._indent;
+        let index = interpreter._index;
+        let list = interpreter._list;
+        let params = interpreter._params;
+        let waitCount = interpreter._waitCount;
+        let waitMode = interpreter._waitMode;
+
+        // common event values
+        interpreter._branch = null;
+        interpreter._character = null;
+        interpreter._childInterpreter = null;
+        interpreter._comments = "";
+        interpreter._depth = 0;
+        interpreter._eventId = 0;
+        interpreter._frameCount = 0;
+        interpreter._freezeChecker = 0;
+        interpreter._indent = 0;
+        interpreter._index = 0;
+        interpreter._list = $dataCommonEvents[this.id].list;
+        interpreter._params = null;
+        interpreter._waitCount = 0;
+        interpreter._waitMode = "";
+
+        // execute common event
+        while (interpreter._index < interpreter._list.length) {
+            if (OnLearnCommonEvent.isBusyWaiter(interpreter.currentCommand()) && $gameMessage.isBusy())
+                interpreter._index++;
+            else {
+                interpreter.executeCommand();
+                interpreter._waitMode = ""; // prevent waiting
+            }
+        }
+
+        // return previous values
+        interpreter._branch = branch;
+        interpreter._character = character;
+        interpreter._childInterpreter = childInterpreter;
+        interpreter._comments = comments;
+        interpreter._depth = depth;
+        interpreter._eventId = eventId;
+        interpreter._frameCount = frameCount;
+        interpreter._freezeChecker = freezeChecker;
+        interpreter._indent = indent;
+        interpreter._index = index;
+        interpreter._list = list;
+        interpreter._params = params;
+        interpreter._waitCount = waitCount;
+        interpreter._waitMode = waitMode;
+    }
+
+    static isBusyWaiter(command) {
+        if (command == null)
+            return false;
+
+        let code = command.code;
+
+        return code >= 101 && code <= 105 || code === 201 || code === 221 || code === 222 || code === 261;
+    }
+}
+
+/**
  * Character should have some skill points to buy this skill.
  *
  * @param price Price in skill points.
@@ -856,14 +990,42 @@ function changeVar(variableId, increment) {
 }
 
 /**
+ * WARNING! Be careful, events can cause bugs - read OnLearnCommonEvent documentation.
+ *
+ * @param id Common event ID.
+ * @return {OnLearnCommonEvent}
+ */
+function commonEvent(id) {
+    return new OnLearnCommonEvent(id);
+}
+
+/**
  * Tree skill object.
  *
+ * @param symbol Symbol.
  * @param skillIds Array of skill IDs.
  * @param requirements Array of requirements for every skill level.
  * @param onLearnActions On learn actions.
  */
-function skill(skillIds, requirements, onLearnActions) {
-    return new Skill(skillIds, requirements, onLearnActions);
+function skill(symbol, skillIds, requirements, onLearnActions) {
+    return new Skill(symbol, skillIds, requirements, onLearnActions);
+}
+
+/**
+ * @param name Tree name.
+ * @param symbol Tree symbol.
+ * @param treeObjs Array of tree objects. Should contain only skills, arrows and nulls.
+ */
+function skillTree(name, symbol, treeObjs) {
+    return new SkillTree(name, symbol, treeObjs);
+}
+
+/**
+ * @param freePoints Initial amount of free skill points.
+ * @param trees Array of tree objects. Should contain only skills, arrows and nulls.
+ */
+function skillTrees(freePoints, trees) {
+    return new SkillTrees(freePoints, trees);
 }
 
 /**
@@ -960,20 +1122,36 @@ Game_Actor.prototype.addTree = function(skillTreeObject) {
         this.skillTrees = new SkillTrees();
 
     if (!skillTreeObject instanceof SkillTree)
-        throw new TypeError("You should add a new SkillTree object.");
+        throw new TypeError("Expected a SkillTree object.");
+
+    if (!SkillTreesSystem.otherTrees.contains(skillTreeObject)) {
+        throw new ReferenceError("Expected a SkillTree object from `SkillTreesSystem.otherTrees` array. " +
+            "Tree name = " + skillTreeObject.name);
+    }
 
     this.skillTrees.trees.push(skillTreeObject);
+
+    skillTreeObject.visibility = true;
+};
+
+/**
+ * Hide specific skill tree for the actor.
+ *
+ * @param treeSymbol Tree symbol.
+ */
+Game_Actor.prototype.hideTree = function(treeSymbol) {
+    this.skillTrees.getTree(treeSymbol).hide(this);
 };
 
 /**
  * Give some skill points to the actor.
  *
  * @param points Amount of points to give. Default value = 1.
- * @param clsId Class id. Default value = 0 (for single pool) or actor's base class id (for separate pools).
+ * @param treeId Class id or tree symbol. Default value = 0 (for single pool) or actor's base class id (for separate pools).
  */
-Game_Actor.prototype.addTreesPoints = function(points, clsId) {
+Game_Actor.prototype.addTreesPoints = function(points, treeId) {
     if (SkillTreesSystem.useJP()) {
-        this.gainJp(points, clsId);
+        this.gainJp(points, treeId);
 
         return;
     }
@@ -981,17 +1159,17 @@ Game_Actor.prototype.addTreesPoints = function(points, clsId) {
     if (!points && points !== 0)
         points = 1;
 
-    if (!clsId) {
+    if (!treeId) {
         if (SkillTreesSystem.singlePointsPool)
-            clsId = 0;
+            treeId = 0;
         else
-            clsId = this._classId;
+            treeId = this._classId;
     }
 
     if (!this.skillTrees)
         this.skillTrees = new SkillTrees();
 
-    this.skillTrees._addPoints(points, clsId);
+    this.skillTrees._addPoints(points, treeId);
 };
 
 /**
@@ -1008,7 +1186,7 @@ Game_Actor.prototype.getTreesPoints = function(tree) {
     if (SkillTreesSystem.singlePointsPool)
         return this.skillTrees._points(0);
 
-    return this.skillTrees._points((tree && tree._classId > 0) ? tree._classId : this._classId);
+    return this.skillTrees._points((tree && tree._classId > 0) ? tree._classId : tree.symbol);
 };
 
 /**
@@ -1090,7 +1268,7 @@ SkillTreesSystem._learn = function(actor, symbol, id, force) {
 /**
  * Learn all skills for actor in specified tree or for all trees if tree is not specified.
  * Skill requirements will be ignored.
- * If you want to spend skill points or add skill points to the tree - you should to it manually.
+ * If you want to spend skill points or add skill points to the tree - you should do it manually.
  *
  * @param actor Actor.
  * @param symbol SkillTree symbol. Optional parameter.
@@ -1162,70 +1340,70 @@ SkillTreesSystem.tryLearnAll = function(actor, symbol) {
 //=============================================================================
 
 // This skill is a single-level skill.
-guard = skill([2], [ // Skill ID from database skills.
+guard = skill('guard', [2], [ // Skill ID from database skills.
     [cost(1)]        // Skill requirement. This skill cost 1 skill point.
 ]);
 // This skill is a 3-level skill.
-combatReflexes = skill([11, 12, 13], [ // Skill IDs from database skills.
+combatReflexes = skill('combatReflexes', [11, 12, 13], [ // Skill IDs from database skills.
     [cost(1)],                         // Skill requirement for 1 level (skill ID = 11)
     [cost(1)],                         // Skill requirement for 2 level (skill ID = 12)
     [cost(1)]                          // Skill requirement for 3 level (skill ID = 13)
 ]);
-dualAttack = skill([3], [
+dualAttack = skill('dual', [3], [
     [cost(1), skillReq(combatReflexes, 1)] // Skill cost 1 skill point and requires 'combatReflexes' skill
 ]);                                        // learned at 1 level. Level can be skipped, see next skill.
-doubleAttack = skill([4], [
+doubleAttack = skill('double', [4], [
     [cost(1), lvl(3), skillReq(combatReflexes)] // Same as above, but can be learned by heroes with level 3 or above.
 ]);
-tripleAttack = skill([5], [
+tripleAttack = skill('triple', [5], [
     [cost(1), lvl(5), skillReq(combatReflexes, 2), skillReq(doubleAttack)] // Requires 2 skills.
 ]);
-berserkerDance = skill([14], [
+berserkerDance = skill('berserkerDance', [14], [
     [cost(3), skillReq(tripleAttack), itemReq('item', 1, 2)] // Requires 2 consumable items with ID 1.
 ]);
-rampage = skill([15], [
+rampage = skill('rampage', [15], [
     [cost(3), treePoints(9), skillReq(combatReflexes, 3), skillReq(berserkerDance)]
 ]);
-armorBreak = skill([16, 17, 18], [
+armorBreak = skill('armorBreak', [16, 17, 18], [
     [cost(1), treePoints(5), skillReq(berserkerDance)],
     [cost(2), atk(30)],
     [cost(3), itemReq('item', 1, 5)]
 ]);
-spark = skill([10], [
+spark = skill('spark', [10], [
     [cost(1)]
 ]);
 
 
-guard2 = skill([2], [
+guard2 = skill('guard2', [2], [
     [cost(1), switchReq(1)], // Requires switch 1 to be true.
 ], [
     [changeVar(1, 2)] // On learn action, which increase the game variable 1 by 2.
 ]);
-combatReflexes2 = skill([11, 12, 13], [
-    [cost(1)],
-    [cost(1)],
-    [cost(1)]
+combatReflexes2 = skill('combatReflexes2', [11, 12, 13], [
+    [cost(1)],          // Skill requirement for 1 level (skill ID = 11)
+    [cost(1)],          // Skill requirement for 2 level (skill ID = 12)
+    [cost(1)]           // Skill requirement for 3 level (skill ID = 13)
 ], [
      [changeVar(1, 1)], // On skill learn will increase the game variable 1 by 1.
      [changeVar(1, 2)], // On skill upgrade to second level will increase the game variable 1 by 2.
-     [changeVar(1, 3)]  // On skill upgrade to third  level will increase the game variable 1 by 3.
+     [commonEvent(1)]   // On skill upgrade to third  level will call common event 1.
 ]);
-dualAttack2 = skill([3], [
+dualAttack2 = skill('dual2', [3], [
     [cost(1), skillReq(combatReflexes2, 1), varReq(1, 2)] // Requires game variable 1 to be 2 or greater.
 ]);
-doubleAttack2 = skill([4], [
+doubleAttack2 = skill('double2', [4], [
     [cost(1), skillReq(combatReflexes2), lvl(3)]
 ]);
-tripleAttack2 = skill([5], [
+tripleAttack2 = skill('triple2', [5], [
     [cost(1), lvl(5), skillReq(combatReflexes2, 2), skillReq(doubleAttack2)]
 ]);
-berserkerDance2 = skill([14], [
+berserkerDance2 = skill('berserkerDance2', [14], [
     [cost(3), skillReq(tripleAttack2)]
 ]);
-rampage2 = skill([15], [
+rampage2 = skill('rampage2', [15], [
     [cost(3), skillReq(combatReflexes2, 3), treePoints(9), skillReq(berserkerDance2)]
 ]);
-armorBreak2 = skill([16, 17, 18], [
+armorBreak2 = skill('armorBreak2', [16, 17, 18], [
     [cost(1), treePoints(5), skillReq(berserkerDance2)],
     [cost(2)],
     [cost(3)]
@@ -1262,8 +1440,8 @@ arrowLeft = new Arrow(29);
  * @type {{"1": actorId, "2": SkillTrees}}
  */
 SkillTreesSystem.actor2trees = {
-    1: new SkillTrees(55, // Character will have 55 skill points to spend at the begining.
-        [new SkillTree('Berserk', 'berserk_tree', [
+    1: skillTrees(100, [// Character will have 100 skill points to spend at the beginning.
+        skillTree('Berserk', 'berserk_tree', [
             // Null represents empty square in the skill window.
             // Arrow points from one skill to another.
             null,   null,           null,          combatReflexes,     null,       guard,           null,
@@ -1275,7 +1453,8 @@ SkillTreesSystem.actor2trees = {
             null,   null,           null,          berserkerDance,     null,       null,            null,
             null,   null,           null,          arrowDown,          arrowRight, null,            null,
             null,   null,           null,          rampage,            null,       armorBreak,      null,
-        ]), new SkillTree('Second Tree', 'second_tree', [
+        ]),
+        skillTree('Second Tree', 'second_tree', [
             null,   null,           null,          combatReflexes,     null,       null,            null,
             null,   null,           arrowLeft,     arrowDown,          null,       null,            null,
             null,   dualAttack,     null,          doubleAttack,       null,       null,            null,
@@ -1285,7 +1464,8 @@ SkillTreesSystem.actor2trees = {
             null,   null,           null,          berserkerDance,     null,       null,            null,
             null,   null,           null,          arrowDown,          null,       null,            null,
             null,   null,           null,          rampage,            null,       null,            null,
-        ]), new SkillTree('Third Tree', 'third_tree', [
+        ]),
+        skillTree('Third Tree', 'third_tree', [
             null,   null,           null,          null,               null,       guard,           null,
             null,   null,           null,          null,               null,       null,            null,
             null,   null,           null,          null,               null,       null,            null,
@@ -1297,8 +1477,8 @@ SkillTreesSystem.actor2trees = {
             null,   null,           null,          null,               null,       null,            null,
         ])]
     ),
-    2: new SkillTrees(55,
-        [new SkillTree('Berserk', 'berserk_tree2', [
+    2: skillTrees(100, [
+        skillTree('Berserk2', 'berserk_tree2', [
             null,   null,           null,          combatReflexes2,     null,       guard2,           null,
             null,   null,           arrowLeft,     arrowDown,          null,       null,            null,
             null,   dualAttack2,     null,          doubleAttack2,       null,       null,            null,
@@ -1319,8 +1499,8 @@ SkillTreesSystem.actor2trees = {
  * @private
  */
 function _sample_sameTreeSetupForDifferentActors() {
-    return new SkillTrees(55,
-        [new SkillTree('Same Trees 1', 'same_trees_1', [
+    return skillTrees(100, [
+        skillTree('Same Trees 1', 'same_trees_1', [
             null,   null,           null,          combatReflexes,     null,       guard,           null,
             null,   null,           arrowLeft,     arrowDown,          null,       null,            null,
             null,   dualAttack,     null,          doubleAttack,       null,       null,            null,
@@ -1330,7 +1510,8 @@ function _sample_sameTreeSetupForDifferentActors() {
             null,   null,           null,          berserkerDance,     null,       null,            null,
             null,   null,           null,          null,               null,       null,            null,
             null,   null,           null,          null,               null,       null,            null,
-        ]), new SkillTree('Same Trees 2', 'same_trees_2', [
+        ]),
+        skillTree('Same Trees 2', 'same_trees_2', [
             null,   null,           null,          combatReflexes,     null,       null,            null,
             null,   null,           arrowLeft,     arrowDown,          null,       null,            null,
             null,   dualAttack,     null,          doubleAttack,       null,       null,            null,
@@ -1340,7 +1521,8 @@ function _sample_sameTreeSetupForDifferentActors() {
             null,   null,           null,          berserkerDance,     null,       null,            null,
             null,   null,           null,          null,               null,       null,            null,
             null,   null,           null,          null,               null,       null,            null,
-        ]), new SkillTree('Same Trees 3', 'same_trees_3', [
+        ]),
+        skillTree('Same Trees 3', 'same_trees_3', [
             null,   null,           null,          null,               null,       guard,           null,
             null,   null,           null,          null,               null,       null,            null,
             null,   null,           null,          null,               null,       null,            null,
@@ -1354,8 +1536,7 @@ function _sample_sameTreeSetupForDifferentActors() {
     )
 }
 
-// WARNING! You can't reset separate trees without single points pool.
-SkillTreesSystem.separateTree = new SkillTree('Fourth Tree', 'f_tree', [
+SkillTreesSystem.separateTree = skillTree('Fourth Tree', 'f_tree', [
     null,   null,           null,          combatReflexes,     null,       null,            null,
     null,   null,           null,          null,               null,       null,            null,
     null,   null,           null,          null,               null,       null,            null,
@@ -1368,12 +1549,10 @@ SkillTreesSystem.separateTree = new SkillTree('Fourth Tree', 'f_tree', [
 ]);
 
 /**
- * WARNING! You can't reset separate trees without single points pool.
- *
  * This tree is used to check tree longer and wider than 1 page.
  * To see it normally - set {@link SkillTreesSystem#skillWindowMaxCols} to 11.
  */
-SkillTreesSystem.bigTree = new SkillTree('Big Tree (see comments)', 'big_tree', [
+SkillTreesSystem.bigTree = skillTree('Big Tree (see comments)', 'big_tree', [
     null,   null,           null,          combatReflexes,     null,       guard,           null,          combatReflexes,     null,       guard,           null,
     null,   null,           arrowLeft,     arrowDown,          null,       null,            arrowLeft,     arrowDown,          null,       null,            null,
     null,   dualAttack,     null,          doubleAttack,       null,       dualAttack,      null,          doubleAttack,       null,       null,            null,
@@ -1407,8 +1586,8 @@ SkillTreesSystem.bigTree = new SkillTree('Big Tree (see comments)', 'big_tree', 
  * @type {{"1": classId, "2": SkillTrees}}
  */
 SkillTreesSystem.class2trees = {
-    1: new SkillTrees(11,
-        [new SkillTree('Class 1', 'Class 1', [
+    1: skillTrees(10, [ // Actor will receive additional points every time he takes new class.
+        skillTree('Class 1', 'Class 1', [
             // Null represents empty square in the skill window.
             // Arrow points from one skill to another.
             null,   null,           null,          combatReflexes,     null,       guard,           null,
@@ -1420,7 +1599,8 @@ SkillTreesSystem.class2trees = {
             null,   null,           null,          berserkerDance,     null,       null,            null,
             null,   null,           null,          arrowDown,          arrowRight, null,            null,
             null,   null,           null,          rampage,            null,       armorBreak,      null,
-        ]), new SkillTree('Class 11', 'Class 11', [
+        ]),
+        skillTree('Class 11', 'Class 11', [
             null,   null,           null,          combatReflexes,     null,       null,            null,
             null,   null,           arrowLeft,     arrowDown,          null,       null,            null,
             null,   dualAttack,     null,          doubleAttack,       null,       null,            null,
@@ -1432,8 +1612,8 @@ SkillTreesSystem.class2trees = {
             null,   null,           null,          rampage,            null,       null,            null,
         ])]
     ),
-    2:  new SkillTrees(12,
-        [new SkillTree('Class 2', 'Class 2', [
+    2: skillTrees(20, [
+        skillTree('Class 2', 'Class 2', [
             null,   null,           null,          null,               null,       guard,           null,
             null,   null,           null,          null,               null,       null,            null,
             null,   null,           null,          null,               null,       null,            null,
@@ -1445,8 +1625,8 @@ SkillTreesSystem.class2trees = {
             null,   null,           null,          null,               null,       null,            null,
         ])]
     ),
-    3:  new SkillTrees(13,
-        [new SkillTree('Class 3', 'Class 3', [
+    3: skillTrees(30, [
+        skillTree('Class 3', 'Class 3', [
             null,   null,           null,          null,               null,       guard,           null,
             null,   null,           null,          null,               null,       null,            null,
             null,   null,           null,          null,               null,       null,            null,
@@ -1458,8 +1638,8 @@ SkillTreesSystem.class2trees = {
             null,   null,           null,          null,               null,       null,            null,
         ])]
     ),
-    4:  new SkillTrees(14,
-        [new SkillTree('Class 4', 'Class 4', [
+    4: skillTrees(40, [
+        skillTree('Class 4', 'Class 4', [
             null,   null,           null,          null,               null,       guard,           null,
             null,   null,           null,          null,               null,       null,            null,
             null,   null,           null,          null,               null,       null,            null,
@@ -1472,3 +1652,18 @@ SkillTreesSystem.class2trees = {
         ])]
     )
 };
+
+/**
+ * Contain trees, which not belong to specific actor or class.
+ * This array is used to load listed trees when player loading saved game.
+ * Any tree must be inside of {@link SkillTreesSystem#actor2trees}, {@link SkillTreesSystem#class2trees} setups or
+ * {@link SkillTreesSystem#otherTrees} array, otherwise it can't be loaded.
+ */
+SkillTreesSystem.otherTrees = [
+    SkillTreesSystem.separateTree,
+    SkillTreesSystem.bigTree,
+    skillTree('Just Another Tree', 'jat', [
+        null,   null,           null,          combatReflexes,     null,       null,            null,
+        null,   null,           null,          null,               null,       null,            null,
+    ])
+];

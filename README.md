@@ -11,4 +11,4 @@ You can find "how to use" guide and sample code at SkillTreesConfig.js.
 ## Terms of Use
 
 Free to use in any RPG Maker MV project including commercial.
-Please, credit "SomeFire" and let me know about your game.
+Credit "SomeFire" and, please, let me know about your game.
