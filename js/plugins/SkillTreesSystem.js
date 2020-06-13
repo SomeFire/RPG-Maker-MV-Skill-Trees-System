@@ -99,7 +99,7 @@
  * @param ---Yanfly---
  * @default
  *
- * @param Use Job Points
+ * @param Use Job Points only
  * @parent ---Yanfly---
  * @type boolean
  * @on Yes
@@ -213,6 +213,8 @@
  *
  * Version 1.9:
  * - Show YEP skill cooldown and warmup.
+ * - Add possibility to use SP and JP simultaneously.
+ *
  *
  */
 
@@ -309,7 +311,7 @@ var Yanfly = Yanfly || {};
  *
  * Single points pool doesn't work with Job Points.
  */
-SkillTreesSystem._useJP = eval(SkillTreesSystem.Parameters['Use Job Points']);
+SkillTreesSystem._useJP = eval(SkillTreesSystem.Parameters['Use Job Points only']);
 
 if (SkillTreesSystem.singlePointsPool && SkillTreesSystem._useJP) {
     SkillTreesSystem.singlePointsPool = false;
@@ -951,43 +953,57 @@ Description_Window.prototype.refresh = function() {
     if (this.contents) {
         this.contents.clear();
 
-        var fullW = this.windowWidth() - this.padding * 2;
-        var w = (fullW - Window_Base._faceWidth) / 2;
+        let fullW = this.windowWidth() - this.padding * 2;
+        let w = (fullW - Window_Base._faceWidth) / 2;
+        let line = 0;
 
         if (this._actor) {
+            // Line 0.
+            this.drawActorFace(this._actor, 0, this.lineHeight() * line, Window_Base._faceWidth, Window_Base._faceHeight);
 
-            this.drawActorFace(this._actor, 0, 0, Window_Base._faceWidth, Window_Base._faceHeight);
+            this.drawActorName(this._actor, Window_Base._faceWidth + this.spacing(), this.lineHeight() * line, w);
+            this.drawActorLevel(this._actor, Window_Base._faceWidth + this.spacing() + w, this.lineHeight() * line++);
 
-            this.drawActorName(this._actor, Window_Base._faceWidth, 0, w);
-            this.drawActorLevel(this._actor, Window_Base._faceWidth + w, 0);
+            // Line 1.
+            this.drawActorClass(this._actor, Window_Base._faceWidth + this.spacing(), this.lineHeight() * line, w);
+            this.drawActorFreePoints(this._actor, this._tree, Window_Base._faceWidth + this.spacing() + w, this.lineHeight() * line++, w);
 
-            this.drawActorClass(this._actor, Window_Base._faceWidth, this.lineHeight(), w);
-            this.drawActorFreePoints(this._actor, this._tree, Window_Base._faceWidth + w, this.lineHeight(), w);
+            // Line 2.
+            if (Yanfly.JP && !SkillTreesSystem.useJP())
+                this.drawJP(this._actor, this._tree, Window_Base._faceWidth + this.spacing() + w, this.lineHeight() * line, w);
 
+            line++;
+
+            // Line 3.
             if (this._tree)
-                this.drawActorTreePoints(this._actor, this._tree, Window_Base._faceWidth, this.lineHeight() * 2, w * 2);
+                this.drawActorTreePoints(this._actor, this._tree, Window_Base._faceWidth + this.spacing(), this.lineHeight() * line++, w * 2);
 
-            // Line 3 is empty.
-            this.drawLine(this.lineHeight() * 4);
+            // Line 4 is empty.
+            this.drawLine(this.lineHeight() * line++);
         }
 
         if (this._skill) {
+            // Line 5.
             var skill = this._skill.nextLevel();
 
-            this.drawIcon(this._skill.iconId(), 0, this.lineHeight() * 5);
-            this.drawText(skill.name, Window_Base._iconWidth + this.spacing(), this.lineHeight() * 5, this.windowWidth() - w - Window_Base._iconWidth - this.spacing());
-            this.drawCastCost(skill, fullW - w, this.lineHeight() * 5);
+            this.drawIcon(this._skill.iconId(), 0, this.lineHeight() * line);
+            this.drawText(skill.name, Window_Base._iconWidth + this.spacing(), this.lineHeight() * line, this.windowWidth() - w - Window_Base._iconWidth - this.spacing());
+            this.drawCastCost(skill, fullW - w, this.lineHeight() * line++);
 
-            this.drawTextEx(skill.description, 0, this.lineHeight() * 6);
+            // Lines 6 and 7.
+            this.drawTextEx(skill.description, 0, this.lineHeight() * line++);
             this.resetFontSettings();
             this.resetTextColor();
 
+            line++;
+
+            // Lines 8, 9, 10.
             var reqs = this._skill.requirements();
 
             if (reqs) {
-                this.drawLine(this.lineHeight() * 8);
-                this.drawText(SkillTreesSystem.requirementsText(), 0, this.lineHeight() * 9);
-                this.drawRequirements(reqs, this.lineHeight() * 10);
+                this.drawLine(this.lineHeight() * line++);
+                this.drawText(SkillTreesSystem.requirementsText(), 0, this.lineHeight() * line++);
+                this.drawRequirements(reqs, this.lineHeight() * line++);
             }
         }
     }
@@ -1006,6 +1022,21 @@ Description_Window.prototype.drawActorFreePoints = function(actor, tree, x, y, w
     this.drawText(text, x, y, textWidth);
     this.changeTextColor(this.normalColor());
     this.drawText(actor.getTreesPoints(tree), x + this.textWidth(text), y, valWidth);
+};
+
+Description_Window.prototype.drawJP = function(actor, tree, x, y, width) {
+    if (!actor.skillTrees)
+        return;
+
+    var text = Yanfly.Param.Jp + ": ";
+    var textWidth = this.textWidth(text);
+    textWidth = (textWidth < width - 50) ? textWidth : width - 50;
+    var valWidth = width - textWidth;
+
+    this.changeTextColor(this.systemColor());
+    this.drawText(text, x, y, textWidth);
+    this.changeTextColor(this.normalColor());
+    this.drawText(actor.jp(tree._classId), x + this.textWidth(text), y, valWidth);
 };
 
 Description_Window.prototype.drawActorTreePoints = function(actor, tree, x, y, width) {

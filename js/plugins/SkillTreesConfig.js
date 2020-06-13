@@ -154,6 +154,7 @@
  *
  * Version 1.9:
  * - Show YEP skill cooldown and warmup.
+ * - Add possibility to use SP and JP simultaneously.
  *
  */
 
@@ -567,6 +568,36 @@ class Cost extends Requirement {
 }
 
 /**
+ * Character should have some job points to buy this skill.
+ */
+class JPCost extends Requirement {
+    constructor(price) {
+        if (!price)
+            price = 1;
+        else if (price < 1)
+            throw new RangeError("Price must be an integer greater than 0.");
+
+        super("job points");
+        this.price = price;
+    }
+
+    meets(actor, tree) {
+        if (tree._classId > 0)
+            return actor.jp(tree._classId) >= this.price;
+        else
+            throw new ReferenceError("Expected class tree. Tree name = " + tree.name);
+    }
+
+    text() {
+        return this.price + " " + Yanfly.Param.Jp;
+    }
+
+    use(actor, tree) {
+        actor.loseJp(this.price, tree._classId);
+    }
+}
+
+/**
  * Character should be skilled enough in the same tree to meet this requirement.
  */
 class TreePointsRequirement extends Requirement {
@@ -929,6 +960,15 @@ class OnLearnCommonEvent extends OnLearnAction {
  */
 function cost(price) {
     return new Cost(price);
+}
+
+/**
+ * Character should have some job points to buy this skill.
+ *
+ * @param price Price in skill points.
+ */
+function jp(price) {
+    return new JPCost(price);
 }
 
 /**
