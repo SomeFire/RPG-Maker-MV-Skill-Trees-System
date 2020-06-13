@@ -152,6 +152,9 @@
  * - Reworked separate points pool.
  * - Added script call to hide tree.
  *
+ * Version 1.9:
+ * - Show YEP skill cooldown and warmup.
+ *
  */
 
 //=============================================================================

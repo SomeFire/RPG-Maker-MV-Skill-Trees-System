@@ -211,6 +211,9 @@
  * - Reworked separate points pool.
  * - Added script call to hide tree.
  *
+ * Version 1.9:
+ * - Show YEP skill cooldown and warmup.
+ *
  */
 
 //=============================================================================
@@ -1044,6 +1047,24 @@ Description_Window.prototype.drawCastCost = function(skill, x, y) {
     if (skill.tpCost) {
         text += skill.tpCost + " \\C[" + (Yanfly.Param && Yanfly.Param.ColorTpCost || 29) + "]" +
             TextManager.tpA + "\\C";
+    }
+
+    if (Yanfly.SCD) {
+        if (skill.cooldown && skill.cooldown[skill.id] > 0) {
+            if (text.length > 0)
+                text += ", ";
+
+            text += "\\C[" + Yanfly.Param.CDTextColor + "]" +
+                Yanfly.Param.CDFmt.format(Yanfly.Util.toGroup(skill.cooldown[skill.id])) + "\\C";
+        }
+
+        if (skill.warmup > 0) {
+            if (text.length > 0)
+                text += ", ";
+
+            text += "\\C[" + Yanfly.Param.WUTextColor + "]" +
+                Yanfly.Param.WUFmt.format(Yanfly.Util.toGroup(skill.warmup)) + "\\C";
+        }
     }
 
     this.drawTextEx(text, x, y);
