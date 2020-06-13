@@ -1272,6 +1272,8 @@ DataManager.extractSaveContents = function(contents) {
         SkillTreesSystem.loadOtherTrees(jsonTrees, actor);
 
         actor.skillTrees.pts = pts;
+
+        actor.refresh();
     }
 };
 
@@ -1483,6 +1485,8 @@ SkillTreesSystem.resetSkillTree = function(actor, tree) {
     }
 
     tree.points = 0;
+
+    actor.refresh();
 
     return points;
 };

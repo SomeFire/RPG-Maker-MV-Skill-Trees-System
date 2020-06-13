@@ -251,6 +251,8 @@ class Skill extends TreeObject {
         this.level = n;
 
         actor.learnSkill(this.lvls[this.level - 1]);
+
+        actor.refresh();
     }
 
     forget(actor) {
@@ -351,6 +353,8 @@ class SkillTree {
             if (skill instanceof Skill)
                 skill.forget(actor);
         }
+
+        actor.refresh();
     }
 
     relearn(actor) {
@@ -360,6 +364,8 @@ class SkillTree {
             if (skill instanceof Skill)
                 skill.relearn(actor);
         }
+
+        actor.refresh();
     }
 
     clone() {
@@ -783,8 +789,6 @@ class StatRequirement extends Requirement {
 
 /**
  * Interface for actions after skill learn. See implementations.
- *
- * WARNING! Don't forget to add loading code in {@link SkillTreesSystem#loadOnLearnAction} in the SkillTreesSystem.js.
  */
 class OnLearnAction {
     /**
