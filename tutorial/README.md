@@ -1,7 +1,7 @@
 # Usage and examples
 
 SkillTreesConfig.js contains "how to" guide in description, and 3 chapters: 
-* API - you can find script calls here.
+* API - script calls for events and some shortcuts for coding.
 * Skills Example - skills with different requirements and onLearn actions.
 * Skill Trees Example - structure of whole skill tree and actor/class/other separation.
 

@@ -953,211 +953,14 @@ class OnLearnCommonEvent extends OnLearnAction {
     }
 }
 
-/**
- * Character should have some skill points to buy this skill.
- *
- * @param price Price in skill points.
- */
-function cost(price) {
-    return new Cost(price);
-}
-
-/**
- * Character should have some job points to buy this skill.
- *
- * @param price Price in skill points.
- */
-function jp(price) {
-    return new JPCost(price);
-}
-
-/**
- * Character should be skilled enough in the same tree to meet this requirement.
- *
- * @param points Points.
- */
-function treePoints(points) {
-    return new TreePointsRequirement(points);
-}
-
-/**
- * Character should know skill from the tree at some level.
- *
- * @param skill Skill tree object.
- * @param lvl Skill level. Default value = 1.
- */
-function skillReq(skill, lvl) {
-    return new SkillRequirement(skill, lvl);
-}
-
-/**
- * Party should has some items.
- *
- * @param dataClass 'item', 'weapon' or 'armor'.
- * @param itemId Item ID.
- * @param amount Amount of items needed to learn the skill. Default value = 1.
- */
-function itemReq(dataClass, itemId, amount) {
-	return new ItemRequirement(dataClass, itemId, amount);
-}
-
-/**
- * Character should have high level to meet this requirement.
- *
- * @param level Hero level.
- */
-function lvl(level) {
-    return new LevelRequirement(level);
-}
-
-/**
- * @param variableId Game variable ID.
- * @param intValue Game variable should be greater or equal to this value to meet requirement.
- */
-function varReq(variableId, intValue) {
-    return new VariableRequirement(variableId, intValue);
-}
-
-/**
- * @param switchId Game switch ID.
- * @param val Boolean true - if game switch should be set to meet requirement.
- * Boolean false - if game switch should be unset to meet requirement.
- * Default value = true.
- */
-function switchReq(switchId, val) {
-    return new SwitchRequirement(switchId, val);
-}
-
-/**
- * @param variableId Game variable ID.
- * @param increment Variable value will be changed by this value. Default value = 1.
- */
-function changeVar(variableId, increment) {
-    return new OnLearnChangeVariable(variableId, increment);
-}
-
-/**
- * WARNING! Be careful, events can cause bugs - read OnLearnCommonEvent documentation.
- *
- * @param id Common event ID.
- * @return {OnLearnCommonEvent}
- */
-function commonEvent(id) {
-    return new OnLearnCommonEvent(id);
-}
-
-/**
- * Tree skill object.
- *
- * @param symbol Symbol.
- * @param skillIds Array of skill IDs.
- * @param requirements Array of requirements for every skill level.
- * @param onLearnActions On learn actions.
- */
-function skill(symbol, skillIds, requirements, onLearnActions) {
-    return new Skill(symbol, skillIds, requirements, onLearnActions);
-}
-
-/**
- * @param name Tree name.
- * @param symbol Tree symbol.
- * @param treeObjs Array of tree objects. Should contain only skills, arrows and nulls.
- */
-function skillTree(name, symbol, treeObjs) {
-    return new SkillTree(name, symbol, treeObjs);
-}
-
-/**
- * @param freePoints Initial amount of free skill points.
- * @param trees Array of tree objects. Should contain only skills, arrows and nulls.
- */
-function skillTrees(freePoints, trees) {
-    return new SkillTrees(freePoints, trees);
-}
-
-/**
- * @param value Actor's max HP value.
- * @return {StatRequirement}
- */
-function mhp(value) {
-    return new StatRequirement(0, value);
-}
-
-/**
- * @param value Actor's max MP value.
- * @return {StatRequirement}
- */
-function mmp(value) {
-    return new StatRequirement(1, value);
-}
-
-/**
- * @param value Actor's attack value.
- * @return {StatRequirement}
- */
-function atk(value) {
-    return new StatRequirement(2, value);
-}
-
-/**
- * @param value Actor's defence value.
- * @return {StatRequirement}
- */
-function def(value) {
-    return new StatRequirement(3, value);
-}
-
-/**
- * @param value Actor's magic atack value.
- * @return {StatRequirement}
- */
-function mat(value) {
-    return new StatRequirement(4, value);
-}
-
-/**
- * @param value Actor's magic defence value.
- * @return {StatRequirement}
- */
-function mdf(value) {
-    return new StatRequirement(5, value);
-}
-
-/**
- * @param value Actor's agility value.
- * @return {StatRequirement}
- */
-function agi(value) {
-    return new StatRequirement(6, value);
-}
-
-/**
- * @param value Actor's luck value.
- * @return {StatRequirement}
- */
-function luk(value) {
-    return new StatRequirement(7, value);
-}
-
-/**
- * @param value Actor's hit value.
- * @return {StatRequirement}
- */
-function hit(value) {
-    return new StatRequirement(8, value);
-}
-
-/**
- * @param value Actor's evasion value.
- * @return {StatRequirement}
- */
-function eva(value) {
-    return new StatRequirement(9, value);
-}
-
 //=============================================================================
 // API
 //=============================================================================
+
+//-----------------------------------------------------------------------------
+// Script Calls
+//
+// Use it when you need to do something manually.
 
 /**
  * Add a skill tree to the actor.
@@ -1381,6 +1184,213 @@ SkillTreesSystem.tryLearnAll = function(actor, symbol) {
         }
     }
 };
+
+//-----------------------------------------------------------------------------
+// Shortcuts
+//
+// Remove tons of "new" keywords from JavaScript code and make it shorter!
+
+/**
+ * Character should have some skill points to buy this skill.
+ *
+ * @param price Price in skill points.
+ */
+function cost(price) {
+    return new Cost(price);
+}
+
+/**
+ * Character should have some job points to buy this skill.
+ *
+ * @param price Price in skill points.
+ */
+function jp(price) {
+    return new JPCost(price);
+}
+
+/**
+ * Character should be skilled enough in the same tree to meet this requirement.
+ *
+ * @param points Points.
+ */
+function treePoints(points) {
+    return new TreePointsRequirement(points);
+}
+
+/**
+ * Character should know skill from the tree at some level.
+ *
+ * @param skill Skill tree object.
+ * @param lvl Skill level. Default value = 1.
+ */
+function skillReq(skill, lvl) {
+    return new SkillRequirement(skill, lvl);
+}
+
+/**
+ * Party should has some items.
+ *
+ * @param dataClass 'item', 'weapon' or 'armor'.
+ * @param itemId Item ID.
+ * @param amount Amount of items needed to learn the skill. Default value = 1.
+ */
+function itemReq(dataClass, itemId, amount) {
+    return new ItemRequirement(dataClass, itemId, amount);
+}
+
+/**
+ * Character should have high level to meet this requirement.
+ *
+ * @param level Hero level.
+ */
+function lvl(level) {
+    return new LevelRequirement(level);
+}
+
+/**
+ * @param variableId Game variable ID.
+ * @param intValue Game variable should be greater or equal to this value to meet requirement.
+ */
+function varReq(variableId, intValue) {
+    return new VariableRequirement(variableId, intValue);
+}
+
+/**
+ * @param switchId Game switch ID.
+ * @param val Boolean true - if game switch should be set to meet requirement.
+ * Boolean false - if game switch should be unset to meet requirement.
+ * Default value = true.
+ */
+function switchReq(switchId, val) {
+    return new SwitchRequirement(switchId, val);
+}
+
+/**
+ * @param variableId Game variable ID.
+ * @param increment Variable value will be changed by this value. Default value = 1.
+ */
+function changeVar(variableId, increment) {
+    return new OnLearnChangeVariable(variableId, increment);
+}
+
+/**
+ * WARNING! Be careful, events can cause bugs - read OnLearnCommonEvent documentation.
+ *
+ * @param id Common event ID.
+ * @return {OnLearnCommonEvent}
+ */
+function commonEvent(id) {
+    return new OnLearnCommonEvent(id);
+}
+
+/**
+ * Tree skill object.
+ *
+ * @param symbol Symbol.
+ * @param skillIds Array of skill IDs.
+ * @param requirements Array of requirements for every skill level.
+ * @param onLearnActions On learn actions.
+ */
+function skill(symbol, skillIds, requirements, onLearnActions) {
+    return new Skill(symbol, skillIds, requirements, onLearnActions);
+}
+
+/**
+ * @param name Tree name.
+ * @param symbol Tree symbol.
+ * @param treeObjs Array of tree objects. Should contain only skills, arrows and nulls.
+ */
+function skillTree(name, symbol, treeObjs) {
+    return new SkillTree(name, symbol, treeObjs);
+}
+
+/**
+ * @param freePoints Initial amount of free skill points.
+ * @param trees Array of tree objects. Should contain only skills, arrows and nulls.
+ */
+function skillTrees(freePoints, trees) {
+    return new SkillTrees(freePoints, trees);
+}
+
+/**
+ * @param value Actor's max HP value.
+ * @return {StatRequirement}
+ */
+function mhp(value) {
+    return new StatRequirement(0, value);
+}
+
+/**
+ * @param value Actor's max MP value.
+ * @return {StatRequirement}
+ */
+function mmp(value) {
+    return new StatRequirement(1, value);
+}
+
+/**
+ * @param value Actor's attack value.
+ * @return {StatRequirement}
+ */
+function atk(value) {
+    return new StatRequirement(2, value);
+}
+
+/**
+ * @param value Actor's defence value.
+ * @return {StatRequirement}
+ */
+function def(value) {
+    return new StatRequirement(3, value);
+}
+
+/**
+ * @param value Actor's magic atack value.
+ * @return {StatRequirement}
+ */
+function mat(value) {
+    return new StatRequirement(4, value);
+}
+
+/**
+ * @param value Actor's magic defence value.
+ * @return {StatRequirement}
+ */
+function mdf(value) {
+    return new StatRequirement(5, value);
+}
+
+/**
+ * @param value Actor's agility value.
+ * @return {StatRequirement}
+ */
+function agi(value) {
+    return new StatRequirement(6, value);
+}
+
+/**
+ * @param value Actor's luck value.
+ * @return {StatRequirement}
+ */
+function luk(value) {
+    return new StatRequirement(7, value);
+}
+
+/**
+ * @param value Actor's hit value.
+ * @return {StatRequirement}
+ */
+function hit(value) {
+    return new StatRequirement(8, value);
+}
+
+/**
+ * @param value Actor's evasion value.
+ * @return {StatRequirement}
+ */
+function eva(value) {
+    return new StatRequirement(9, value);
+}
 
 //=============================================================================
 // Skills Example
