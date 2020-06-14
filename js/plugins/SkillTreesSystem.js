@@ -1291,19 +1291,6 @@ Game_Actor.prototype.changeSkillTrees = function(oldClassId, newClassId) {
     }
 };
 
-SkillTreesSystem.findSkillTrees = function(classId) {
-    let skillTrees = SkillTreesSystem.class2trees[classId];
-
-    if (skillTrees)
-        skillTrees = skillTrees.clone();
-    else
-        skillTrees = new SkillTrees();
-
-    skillTrees.setClassId(classId);
-
-    return skillTrees;
-};
-
 //-----------------------------------------------------------------------------
 // DataManager
 //
