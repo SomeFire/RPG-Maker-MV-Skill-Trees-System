@@ -1165,6 +1165,9 @@ Game_Actor.prototype.setup = function(actorId) {
 };
 
 SkillTreesSystem.initActorFreePoints = function (actor) {
+    if (!SkillTreesSystem.actor2trees)
+        return;
+
     let skillTrees = SkillTreesSystem.actor2trees[actor._actorId];
 
     if (skillTrees)
@@ -1172,6 +1175,9 @@ SkillTreesSystem.initActorFreePoints = function (actor) {
 };
 
 SkillTreesSystem.initClassFreePoints = function (actor, clsId) {
+    if (!SkillTreesSystem.class2trees)
+        return;
+
     if (!clsId)
         clsId = actor._classId;
 
