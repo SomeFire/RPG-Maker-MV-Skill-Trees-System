@@ -96,7 +96,7 @@
  *
  * @param Tree points text
  * @parent ---Text---
- * @desc Text for skill points ised in the tree to show in the skill description window.
+ * @desc Text for skill points used in the tree to show in the skill description window.
  * @default SP in %1
  *
  * @param Requirements text
