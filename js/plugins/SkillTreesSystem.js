@@ -63,6 +63,14 @@
  * @desc Drawing size for skills. Separate arrows from icons with opaque background to remove glitches.
  * @default 1
  *
+ * @param Learn by double click
+ * @parent ---General---
+ * @type boolean
+ * @on Yes
+ * @off No
+ * @desc Learn skill by double click or by separate button.
+ * @default true
+ *
  * @param ---Text---
  * @default
  *
@@ -95,6 +103,11 @@
  * @parent ---Text---
  * @desc Text for skill requirements to show in the skill description window.
  * @default Requirements:
+ *
+ * @param Confirmation button text
+ * @parent ---Text---
+ * @desc Text for confirmation button to learn skill.
+ * @default Learn
  *
  * @param ---Yanfly---
  * @default
@@ -214,7 +227,7 @@
  * Version 1.9:
  * - Show YEP skill cooldown and warmup.
  * - Add possibility to use SP and JP simultaneously.
- *
+ * - Add confirmation button to learn skills.
  *
  */
 
@@ -252,6 +265,9 @@ SkillTreesSystem.skillCursorMargin = eval(SkillTreesSystem.Parameters['Margin fo
 /** Drawing size for skills. */
 SkillTreesSystem.skillScale = Number(SkillTreesSystem.Parameters['Skill icon scale factor']);
 
+/** Learn skill by double click or by separate button. */
+SkillTreesSystem.learnByDoubleClick = eval(SkillTreesSystem.Parameters['Learn by double click']);
+
 // ---Text---
 
 /** Text for the menu button. */
@@ -271,6 +287,9 @@ SkillTreesSystem._treePointsText = String(SkillTreesSystem.Parameters['Tree poin
 
 /** Text for skill requirements to show in the skill description window. */
 SkillTreesSystem._requirementsText = String(SkillTreesSystem.Parameters['Requirements text']);
+
+/** Text for confirmation button to learn skill. */
+SkillTreesSystem.confirmationButtonText = String(SkillTreesSystem.Parameters['Confirmation button text']);
 
 /**
  * Text for free skill points to show in the skill description window.
@@ -362,17 +381,33 @@ Scene_SkillTrees.prototype.create = function() {
     this.addWindow(this._descriptionWindow);
     this._treesWindow.setDescriptionWindow(this._descriptionWindow);
     this._skillsWindow.setDescriptionWindow(this._descriptionWindow);
+
+    if (!SkillTreesSystem.learnByDoubleClick) {
+        this._confirmationButton = new Learn_Button_Window(0, 0, this);
+        this._confirmationButton.move(
+            this._skillsWindow.windowWidth() + this._descriptionWindow.windowWidth()/2 - this._confirmationButton.windowWidth()/2,
+            this._treesWindow.windowHeight() + this._descriptionWindow.textPadding() * 2 + this._treesWindow.lineHeight() * 8,
+            this._confirmationButton.windowWidth(),
+            this._confirmationButton.windowHeight());
+        this.addWindow(this._confirmationButton);
+        this._skillsWindow._confirmationButton = this._confirmationButton;
+        this._confirmationButton.hide();
+    }
 };
 
 Scene_SkillTrees.prototype.start = function() {
     Scene_MenuBase.prototype.start.call(this);
     this.refreshActor();
-    this._treesWindow.refresh();
-    this._skillsWindow.refresh();
-    this._descriptionWindow.refresh();
+    this.refresh();
 
     if (this._isSingleTreeActor())
         this._treesWindow.processOk();
+};
+
+Scene_SkillTrees.prototype.refresh = function() {
+    this._treesWindow.refresh();
+    this._skillsWindow.refresh();
+    this._descriptionWindow.refresh();
 };
 
 Scene_SkillTrees.prototype.refreshActor = function() {
@@ -386,6 +421,9 @@ Scene_SkillTrees.prototype.onActorChange = function() {
     this.refreshActor();
     this._treesWindow.activate();
     this._treesWindow.selectLast();
+
+    if (!SkillTreesSystem.learnByDoubleClick)
+        this._confirmationButton.hide();
 
     if (this._isSingleTreeActor())
         this._treesWindow.processOk();
@@ -406,9 +444,12 @@ Scene_SkillTrees.prototype.onItemOk = function() {
     let skill = this._descriptionWindow._skill;
 
     if (skill.isAvailableToLearn(actor, tree)) {
-        skill.learn(actor, tree);
-        this._skillsWindow.refresh();
-        this._descriptionWindow.refresh();
+        if (SkillTreesSystem.learnByDoubleClick) {
+            skill.learn(actor, tree);
+
+            this.refresh();
+        } else
+            this._confirmationButton._hook = true;
     }
 
     this._skillsWindow.activate();
@@ -416,6 +457,9 @@ Scene_SkillTrees.prototype.onItemOk = function() {
 
 Scene_SkillTrees.prototype.onItemCancel = function() {
     Skills_Window._lastSelectedIndex[this._actor.actorId()][this._skillsWindow._tree.symbol] = this._skillsWindow.index();
+
+    if (!SkillTreesSystem.learnByDoubleClick)
+        this._confirmationButton.hide();
 
     this._skillsWindow.deselect();
     this._treesWindow.activate();
@@ -702,8 +746,22 @@ Skills_Window.prototype.select = function(index) {
     if (index === -1)
         return;
 
-    if (this._descriptionWindow)
-        this._descriptionWindow.showDescription(this._tree, this._tree ? this._tree.skills[index] : null);
+    if (this._descriptionWindow) {
+        let skill = this._tree ? this._tree.skills[index] : null;
+
+        this._descriptionWindow.showDescription(this._tree, skill);
+
+        if (!SkillTreesSystem.learnByDoubleClick && skill instanceof Skill) {
+            this._confirmationButton.skill = skill;
+            this._confirmationButton.actor = this._actor;
+            this._confirmationButton.tree = this._tree;
+
+            if (skill.isAvailableToLearn(this._actor, this._tree))
+                this._confirmationButton.show();
+            else
+                this._confirmationButton.hide();
+        }
+    }
 };
 
 Skills_Window.prototype.selectLast = function() {
@@ -876,15 +934,15 @@ Skills_Window.prototype.column = function() {
     return this.index() % SkillTreesSystem.skillWindowMaxCols;
 };
 
-Window_Selectable.prototype.rightColumn = function() {
+Skills_Window.prototype.rightColumn = function() {
     return Math.floor(this._scrollX / this.itemWidth());
 };
 
-Window_Selectable.prototype.maxRightColumn = function() {
+Skills_Window.prototype.maxRightColumn = function() {
     return Math.max(0, this.maxCols() - SkillTreesSystem.skillWindowDrawCols);
 };
 
-Window_Selectable.prototype.setRightColumn = function(col) {
+Skills_Window.prototype.setRightColumn = function(col) {
     var scrollX = col.clamp(0, this.maxRightColumn()) * this.itemWidth();
     if (this._scrollX !== scrollX) {
         this._scrollX = scrollX;
@@ -893,11 +951,11 @@ Window_Selectable.prototype.setRightColumn = function(col) {
     }
 };
 
-Window_Selectable.prototype.leftColumn = function() {
+Skills_Window.prototype.leftColumn = function() {
     return Math.max(0, this.rightColumn() + SkillTreesSystem.skillWindowDrawCols - 1);
 };
 
-Window_Selectable.prototype.setLeftColumn = function(row) {
+Skills_Window.prototype.setLeftColumn = function(row) {
     this.setRightColumn(row - (SkillTreesSystem.skillWindowDrawCols - 1));
 };
 
@@ -907,6 +965,12 @@ Skills_Window.prototype.isCurrentItemEnabled = function() {
     let skill = this._descriptionWindow._skill;
 
     return skill.isAvailableToLearn(actor, tree);
+};
+
+SkillTreesSystem.skillsWindow_processOk = Skills_Window.prototype.processOk;
+Skills_Window.prototype.processOk = function() {
+    if (SkillTreesSystem.learnByDoubleClick)
+        SkillTreesSystem.skillsWindow_processOk.call(this);
 };
 
 //-----------------------------------------------------------------------------
@@ -1120,6 +1184,83 @@ Description_Window.prototype.drawRequirements = function(reqs, y) {
 
 Description_Window.prototype.spacing = function() {
     return 12;
+};
+
+//-----------------------------------------------------------------------------
+// Learn Button Window
+//
+// The window for selecting a skill tree on the abilities screen.
+
+function Learn_Button_Window() {
+    this.initialize.apply(this, arguments);
+}
+
+Learn_Button_Window.prototype = Object.create(Window_Command.prototype);
+Learn_Button_Window.prototype.constructor = Learn_Button_Window;
+
+Learn_Button_Window.prototype.initialize = function(x, y, scene) {
+    Window_Command.prototype.initialize.call(this, x, y, this.windowWidth(), this.windowHeight());
+
+    this.scene = scene;
+    this.actor = null;
+    this.tree = null;
+    this.skill = null;
+};
+
+Learn_Button_Window.prototype.windowWidth = function() {
+    return Graphics.boxWidth / 8;
+};
+
+Learn_Button_Window.prototype.standardFontSize = function() {
+    return Window_Command.prototype.standardPadding.call(this) * 0.9;
+};
+
+Learn_Button_Window.prototype.standardPadding = function() {
+    return Window_Command.prototype.standardPadding.call(this) / 2;
+};
+
+Learn_Button_Window.prototype.lineHeight = function() {
+    return Window_Command.prototype.lineHeight.call(this) * 0.8;
+};
+
+Learn_Button_Window.prototype.numVisibleRows = function() {
+    return 1;
+};
+
+Learn_Button_Window.prototype.maxCols = function() {
+    return 1;
+};
+
+Learn_Button_Window.prototype.makeCommandList = function() {
+    this.addCommand(SkillTreesSystem.confirmationButtonText, "learn_skill", true);
+};
+
+Learn_Button_Window.prototype.processOk = function() {
+    if (this._hook || !this.visible) {
+        this._hook = false;
+
+        return;
+    }
+
+    if (SkillTreesSystem.learnByDoubleClick)
+        return;
+
+    this.skill.learn(this.actor, this.tree);
+
+    if (!this.skill.isAvailableToLearn(this.actor, this.tree))
+        this.hide();
+
+    this.scene.refresh();
+
+    this.playOkSound();
+};
+
+Learn_Button_Window.prototype.isCurrentItemEnabled = function() {
+    return this.skill.isAvailableToLearn(this.actor, this.tree);
+};
+
+Learn_Button_Window.prototype.itemTextAlign = function() {
+    return 'center';
 };
 
 //-----------------------------------------------------------------------------

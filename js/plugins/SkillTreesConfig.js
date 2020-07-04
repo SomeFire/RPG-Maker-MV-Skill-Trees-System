@@ -155,6 +155,7 @@
  * Version 1.9:
  * - Show YEP skill cooldown and warmup.
  * - Add possibility to use SP and JP simultaneously.
+ * - Add confirmation button to learn skills.
  *
  */
 
