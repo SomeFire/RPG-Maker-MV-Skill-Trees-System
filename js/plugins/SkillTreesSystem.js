@@ -288,6 +288,12 @@ SkillTreesSystem._treePointsText = String(SkillTreesSystem.Parameters['Tree poin
 /** Text for skill requirements to show in the skill description window. */
 SkillTreesSystem._requirementsText = String(SkillTreesSystem.Parameters['Requirements text']);
 
+/** Text for skill cooldown shown in the skill description. */
+SkillTreesSystem.skillCooldownText = Yanfly && Yanfly.SCD ? Yanfly.Param.CDFmt.replace("%1", "") : null;
+
+/** Text for skill cooldown shown in the skill description. */
+SkillTreesSystem.skillWarmupText = Yanfly && Yanfly.SCD ? Yanfly.Param.WUFmt.replace("%1", "") : null;
+
 /** Text for confirmation button to learn skill. */
 SkillTreesSystem.confirmationButtonText = String(SkillTreesSystem.Parameters['Confirmation button text']);
 
@@ -1144,25 +1150,40 @@ Description_Window.prototype.drawCastCost = function(skill, x, y) {
             TextManager.tpA + "\\C";
     }
 
-    if (Yanfly.SCD) {
-        if (skill.cooldown && skill.cooldown[skill.id] > 0) {
-            if (text.length > 0)
-                text += ", ";
-
-            text += "\\C[" + Yanfly.Param.CDTextColor + "]" +
-                Yanfly.Param.CDFmt.format(Yanfly.Util.toGroup(skill.cooldown[skill.id])) + "\\C";
-        }
-
-        if (skill.warmup > 0) {
-            if (text.length > 0)
-                text += ", ";
-
-            text += "\\C[" + Yanfly.Param.WUTextColor + "]" +
-                Yanfly.Param.WUFmt.format(Yanfly.Util.toGroup(skill.warmup)) + "\\C";
-        }
-    }
+    text += this.getSkillCooldownText(skill, text);
 
     this.drawTextEx(text, x, y);
+};
+
+Description_Window.prototype.getSkillCooldownText = function(skill, castCostText) {
+    if (!Yanfly.SCD)
+        return "";
+
+    if (!SkillTreesSystem.skillCooldownText || !SkillTreesSystem.skillWarmupText) {
+        console.warn("Skill Trees System plugin must be placed under YEP Skill Cooldowns plugin.");
+
+        return "";
+    }
+
+    let text;
+
+    if (skill.cooldown && skill.cooldown[skill.id] > 0) {
+        if (castCostText.length > 0)
+            text += ", ";
+
+        text += Yanfly.Util.toGroup(skill.cooldown[skill.id]) + "\\C[" + Yanfly.Param.CDTextColor + "] " +
+            SkillTreesSystem.skillCooldownText + "\\C";
+    }
+
+    if (skill.warmup > 0) {
+        if (castCostText.length > 0 || text.length > 0)
+            text += ", ";
+
+        text += Yanfly.Util.toGroup(skill.warmup) + "\\C[" + Yanfly.Param.WUTextColor + "] " +
+            SkillTreesSystem.skillWarmupText + "\\C";
+    }
+
+    return text;
 };
 
 Description_Window.prototype.drawRequirements = function(reqs, y) {
