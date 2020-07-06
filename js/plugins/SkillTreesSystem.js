@@ -1165,7 +1165,7 @@ Description_Window.prototype.getSkillCooldownText = function(skill, castCostText
         return "";
     }
 
-    let text;
+    let text = "";
 
     if (skill.cooldown && skill.cooldown[skill.id] > 0) {
         if (castCostText.length > 0)
