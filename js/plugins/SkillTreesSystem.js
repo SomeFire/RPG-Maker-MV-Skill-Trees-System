@@ -282,7 +282,7 @@ SkillTreesSystem._noTreesText = String(SkillTreesSystem.Parameters['No trees tex
 /** Text for free skill points to show in the skill description window. */
 SkillTreesSystem._freePointsText = String(SkillTreesSystem.Parameters['Free points text']);
 
-/** Text for skill points ised in the tree to show in the skill description window. */
+/** Text for skill points used in the tree to show in the skill description window. */
 SkillTreesSystem._treePointsText = String(SkillTreesSystem.Parameters['Tree points text']);
 
 /** Text for skill requirements to show in the skill description window. */
@@ -305,7 +305,7 @@ SkillTreesSystem.freePointsText = function() {
 };
 
 /**
- * Text for skill points ised in the tree to show in the skill description window.
+ * Text for skill points used in the tree to show in the skill description window.
  */
 SkillTreesSystem.treePointsText = function(tree) {
     return SkillTreesSystem._treePointsText.format(tree.name) + ": ";
