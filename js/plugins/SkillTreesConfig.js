@@ -242,7 +242,7 @@ class Skill extends TreeObject {
             return;
 
         for (let act of onLearnActions)
-            act.action();
+            act.action(actor, tree);
     }
 
     levelUp(actor, n) {
@@ -835,8 +835,11 @@ class OnLearnAction {
 
     /**
      * Will be called when actor learns appropriate level of skill.
+     *
+     * @param actor Actor, who learned a skill.
+     * @param tree Tree containing learned skill.
      */
-    action() {}
+    action(actor, tree) {}
 }
 
 /**
@@ -859,7 +862,7 @@ class OnLearnChangeVariable extends OnLearnAction {
         this.inc = increment;
     }
 
-    action() {
+    action(actor, tree) {
         var oldVal = $gameVariables.value(this.varId);
 
         $gameVariables.setValue(this.varId, oldVal + this.inc)
@@ -882,7 +885,7 @@ class OnLearnCommonEvent extends OnLearnAction {
         this.id = id;
     }
 
-    action() {
+    action(actor, tree) {
         let interpreter = $gameMap._interpreter;
 
         // backup
