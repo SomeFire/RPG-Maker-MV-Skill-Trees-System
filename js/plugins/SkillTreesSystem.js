@@ -165,6 +165,12 @@
  * To show scene with skill trees:
  *     SceneManager.push(Scene_SkillTrees)
  *
+ * To show unspent skill points in game messages:
+ *     \SP[actorId] (single points pool only)
+ *     \SP[actorId, treeId]
+ *
+ *     Will be replaced with unspent skill points for actor with given ID
+ *     and for tree with given treeId.
  * ----------------------------------------------------------------------------
  *
  * If something works not as expected - check console log (F8 should open it).
@@ -1696,4 +1702,21 @@ SkillTreesSystem.resetSkillTree = function(actor, tree) {
     actor.refresh();
 
     return points;
+};
+
+/**
+ * Control characters for showing unspent skill points: "\SP[actorId]" and "\SP[actorId, treeId]".
+ */
+SkillTreesSystem.WindowBaseConvertEscapeCharacters = Window_Base.prototype.convertEscapeCharacters;
+Window_Base.prototype.convertEscapeCharacters = function (text) {
+    text = SkillTreesSystem.WindowBaseConvertEscapeCharacters.call(this, text);
+
+    text = text.replace(/\x1bSP\[(\d+),?\s*(\d*)\]/gi, function() {
+        let actor = $gameActors.actor(parseInt(arguments[1]));
+        let treeId = arguments[2];
+
+        return actor.getTreesPoints(treeId === "" ? null : actor.skillTrees.getTree(treeId));
+    }.bind(this));
+
+    return text;
 };
