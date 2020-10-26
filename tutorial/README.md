@@ -16,7 +16,7 @@ Actor have `SkillTrees` parameter, which is a container for all trees, and trees
 
 Let's start from the smallest object - `Skill`.
 `Skill` is a JavaScript object, containing:
-* symbol (identifier),
+* symbol (identifier, must be unique),
 * array with skill IDs from RPG Maker,
 * array with arrays of requirements per skill level,
 * array with arrays of onLearn actions per skill level.
@@ -26,7 +26,7 @@ Let's start from the smallest object - `Skill`.
 Now, let's talk about trees.
 `SkillTree` is a JavaScript object, containing:
 * displayable name,
-* symbol (identifier),
+* symbol (identifier, must be unique),
 * array of Skill objects.
 
 ![Sample image](/tutorial/STS_SkillTree.png)
