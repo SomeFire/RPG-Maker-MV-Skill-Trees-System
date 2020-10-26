@@ -235,6 +235,10 @@
  * - Add possibility to use SP and JP simultaneously.
  * - Add confirmation button to learn skills.
  *
+ * Version 1.10:
+ * - Added actor and tree to OnLearnAction.act() method.
+ * - Added text command to show unspent skills.
+ * - Fixed possible bug with big skill cursor when Window_Selectable spacing was overwritten.
  */
 
 //=============================================================================
@@ -648,6 +652,10 @@ Skills_Window.prototype.maxItems = function() {
 
 Skills_Window.prototype.maxCols = function() {
     return SkillTreesSystem.skillWindowMaxCols;
+};
+
+Skills_Window.prototype.spacing = function() {
+    return 12;
 };
 
 Skills_Window.prototype.windowWidth = function() {
