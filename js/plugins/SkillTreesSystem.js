@@ -239,6 +239,8 @@
  * - Added actor and tree to OnLearnAction.act() method.
  * - Added text command to show unspent skills.
  * - Fixed possible bug with big skill cursor when Window_Selectable spacing was overwritten.
+ * - Fixed bug when skill cooldown wasn't shown without MP/TP.
+ *
  */
 
 //=============================================================================
@@ -1146,7 +1148,9 @@ Description_Window.prototype.drawLine = function(y) {
 };
 
 Description_Window.prototype.drawCastCost = function(skill, x, y) {
-    if (!skill.mpCost && !skill.tpCost)
+    let cdText = this.getSkillCooldownText(skill);
+
+    if (!skill.mpCost && !skill.tpCost && cdText.length === 0)
         return;
 
     let text = "";
@@ -1164,12 +1168,17 @@ Description_Window.prototype.drawCastCost = function(skill, x, y) {
             TextManager.tpA + "\\C";
     }
 
-    text += this.getSkillCooldownText(skill, text);
+    if (cdText.length > 0) {
+        if (text.length > 0)
+            text += ", ";
+
+        text += cdText;
+    }
 
     this.drawTextEx(text, x, y);
 };
 
-Description_Window.prototype.getSkillCooldownText = function(skill, castCostText) {
+Description_Window.prototype.getSkillCooldownText = function(skill) {
     if (!Yanfly.SCD)
         return "";
 
@@ -1182,17 +1191,11 @@ Description_Window.prototype.getSkillCooldownText = function(skill, castCostText
     let text = "";
 
     if (skill.cooldown && skill.cooldown[skill.id] > 0) {
-        if (castCostText.length > 0)
-            text += ", ";
-
         text += Yanfly.Util.toGroup(skill.cooldown[skill.id]) + "\\C[" + Yanfly.Param.CDTextColor + "] " +
             SkillTreesSystem.skillCooldownText + "\\C";
     }
 
     if (skill.warmup > 0) {
-        if (castCostText.length > 0 || text.length > 0)
-            text += ", ";
-
         text += Yanfly.Util.toGroup(skill.warmup) + "\\C[" + Yanfly.Param.WUTextColor + "] " +
             SkillTreesSystem.skillWarmupText + "\\C";
     }
