@@ -162,6 +162,7 @@
  * - Added text command to show unspent skills.
  * - Fixed possible bug with big skill cursor when Window_Selectable spacing was overwritten.
  * - Fixed bug when skill cooldown wasn't shown without MP/TP.
+ * - Fixed game crashes when actor have no trees.
  *
  */
 

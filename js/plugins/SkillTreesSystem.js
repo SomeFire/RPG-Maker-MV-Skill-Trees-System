@@ -240,6 +240,7 @@
  * - Added text command to show unspent skills.
  * - Fixed possible bug with big skill cursor when Window_Selectable spacing was overwritten.
  * - Fixed bug when skill cooldown wasn't shown without MP/TP.
+ * - Fixed game crashes when actor have no trees.
  *
  */
 
@@ -1062,7 +1063,9 @@ Description_Window.prototype.refresh = function() {
 
             // Line 3.
             if (this._tree)
-                this.drawActorTreePoints(this._actor, this._tree, Window_Base._faceWidth + this.spacing(), this.lineHeight() * line++, w * 2);
+                this.drawActorTreePoints(this._actor, this._tree, Window_Base._faceWidth + this.spacing(), this.lineHeight() * line, w * 2);
+
+            line++;
 
             // Line 4 is empty.
             this.drawLine(this.lineHeight() * line++);
@@ -1122,7 +1125,7 @@ Description_Window.prototype.drawJP = function(actor, tree, x, y, width) {
     this.changeTextColor(this.systemColor());
     this.drawText(text, x, y, textWidth);
     this.changeTextColor(this.normalColor());
-    this.drawText(actor.jp(tree._classId), x + this.textWidth(text), y, valWidth);
+    this.drawText(tree ? actor.jp(tree._classId) : "0", x + this.textWidth(text), y, valWidth);
 };
 
 Description_Window.prototype.drawActorTreePoints = function(actor, tree, x, y, width) {
@@ -1340,7 +1343,8 @@ Game_Actor.prototype.setup = function(actorId) {
     SkillTreesSystem.initActorFreePoints(this);
     SkillTreesSystem.initClassFreePoints(this);
 
-    this.skillTrees.trees.forEach(tree => tree.visibility = true)
+    if (this.skillTrees && this.skillTrees.trees)
+        this.skillTrees.trees.forEach(tree => tree.visibility = true)
 };
 
 SkillTreesSystem.initActorFreePoints = function (actor) {
