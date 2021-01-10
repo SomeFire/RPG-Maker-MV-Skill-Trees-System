@@ -1199,6 +1199,9 @@ Description_Window.prototype.getSkillCooldownText = function(skill) {
     }
 
     if (skill.warmup > 0) {
+        if (text.length > 0)
+            text += ", ";
+
         text += Yanfly.Util.toGroup(skill.warmup) + "\\C[" + Yanfly.Param.WUTextColor + "] " +
             SkillTreesSystem.skillWarmupText + "\\C";
     }
