@@ -1251,7 +1251,7 @@ Description_Window.prototype.drawTextDecreased = function(text, x, y, widthLimit
         while (this.textWidthWithFontSize(text, fontSize) > widthLimit)
             fontSize -= delta;
 
-        this.drawTextWithFontSize(text, x, y + (dfltFontSize - fontSize), fontSize);
+        this.drawTextWithFontSize(text, x, y + (dfltFontSize - fontSize) / 2, fontSize);
     }
 };
 
