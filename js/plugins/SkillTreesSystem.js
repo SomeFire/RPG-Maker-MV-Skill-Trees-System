@@ -241,6 +241,7 @@
  * - Fixed possible bug with big skill cursor when Window_Selectable spacing was overwritten.
  * - Fixed bug when skill cooldown wasn't shown without MP/TP.
  * - Fixed game crashes when actor have no trees.
+ * - Improved font size for long skill descriptions.
  *
  */
 
@@ -1077,10 +1078,10 @@ Description_Window.prototype.refresh = function() {
 
             this.drawIcon(this._skill.iconId(), 0, this.lineHeight() * line);
             this.drawText(skill.name, Window_Base._iconWidth + this.spacing(), this.lineHeight() * line, this.windowWidth() - w - Window_Base._iconWidth - this.spacing());
-            this.drawCastCost(skill, fullW - w, this.lineHeight() * line++);
+            this.drawCastCost(skill, fullW - w, this.lineHeight() * line++, w);
 
             // Lines 6 and 7.
-            this.drawTextEx(skill.description, 0, this.lineHeight() * line++);
+            this.drawSkillDescription(skill.description, 0, this.lineHeight() * line++, fullW);
             this.resetFontSettings();
             this.resetTextColor();
 
@@ -1150,7 +1151,7 @@ Description_Window.prototype.drawLine = function(y) {
     this.contents.paintOpacity = 255;
 };
 
-Description_Window.prototype.drawCastCost = function(skill, x, y) {
+Description_Window.prototype.drawCastCost = function(skill, x, y, widthLimit) {
     let cdText = this.getSkillCooldownText(skill);
 
     if (!skill.mpCost && !skill.tpCost && cdText.length === 0)
@@ -1178,7 +1179,11 @@ Description_Window.prototype.drawCastCost = function(skill, x, y) {
         text += cdText;
     }
 
-    this.drawTextEx(text, x, y);
+    this.drawTextDecreased(text, x, y, widthLimit);
+};
+
+Description_Window.prototype.drawSkillDescription = function (text, x, y, widthLimit) {
+    this.drawTextDecreased(text, x, y, widthLimit);
 };
 
 Description_Window.prototype.getSkillCooldownText = function(skill) {
@@ -1209,6 +1214,23 @@ Description_Window.prototype.getSkillCooldownText = function(skill) {
     return text;
 };
 
+Description_Window.prototype.drawTextDecreased = function(text, x, y, widthLimit) {
+    let w = this.textWidthEx(text);
+
+    if (w <= widthLimit)
+        this.drawTextEx(text, x, y);
+    else {
+        let delta = 2;
+        let dfltFontSize = this.contents.fontSize;
+        let fontSize = dfltFontSize - delta;
+
+        while (this.textWidthWithFontSize(text, fontSize) > widthLimit)
+            fontSize -= delta;
+
+        this.drawTextWithFontSize(text, x, y + (dfltFontSize - fontSize), fontSize);
+    }
+};
+
 Description_Window.prototype.drawRequirements = function(reqs, y) {
     for (var i = 0; i < reqs.length; i++) {
         var req = reqs[i];
@@ -1224,6 +1246,26 @@ Description_Window.prototype.drawRequirements = function(reqs, y) {
     }
 
     this.changeTextColor(this.normalColor());
+};
+
+Description_Window.prototype.textWidthWithFontSize = function(text, fontSize) {
+    return this.drawTextWithFontSize(text, 0, this.contents.height + this.lineHeight(), fontSize);
+};
+
+Description_Window.prototype.drawTextWithFontSize = function(text, x, y, fontSize) {
+    if (text) {
+        this.resetFontSettings();
+        this.contents.fontSize = fontSize;
+        var textState = { index: 0, x: x, y: y, left: x };
+        textState.text = this.convertEscapeCharacters(text);
+        textState.height = this.calcTextHeight(textState, false);
+        while (textState.index < textState.text.length) {
+            this.processCharacter(textState);
+        }
+        return textState.x - x;
+    } else {
+        return 0;
+    }
 };
 
 Description_Window.prototype.spacing = function() {
