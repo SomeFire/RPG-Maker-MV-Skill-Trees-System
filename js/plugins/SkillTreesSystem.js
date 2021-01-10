@@ -104,6 +104,17 @@
  * @desc Text for skill requirements to show in the skill description window.
  * @default Requirements:
  *
+ * @param Maxed skill text
+ * @parent ---Text---
+ * @desc Text for maxed skill level.
+ * @default MAX
+ *
+ * @param Maxed skill text Y position
+ * @parent ---Text---
+ * @type number
+ * @desc Y position for skill level text in Skills Window.
+ * @default 0
+ *
  * @param Confirmation button text
  * @parent ---Text---
  * @desc Text for confirmation button to learn skill.
@@ -242,6 +253,7 @@
  * - Fixed bug when skill cooldown wasn't shown without MP/TP.
  * - Fixed game crashes when actor have no trees.
  * - Improved font size for long skill descriptions.
+ * - Text for maxed skill level can be changed as plugin parameter.
  *
  */
 
@@ -301,6 +313,12 @@ SkillTreesSystem._treePointsText = String(SkillTreesSystem.Parameters['Tree poin
 
 /** Text for skill requirements to show in the skill description window. */
 SkillTreesSystem._requirementsText = String(SkillTreesSystem.Parameters['Requirements text']);
+
+/** Text for maxed skill level. */
+SkillTreesSystem._maxedSkillText = String(SkillTreesSystem.Parameters['Maxed skill text']);
+
+/** Y position for skill level text in Skills Window. */
+SkillTreesSystem._maxedSkillTextYPosition = Number(SkillTreesSystem.Parameters['Maxed skill text Y position']);
 
 /** Text for skill cooldown shown in the skill description. */
 SkillTreesSystem.skillCooldownText = Yanfly && Yanfly.SCD ? Yanfly.Param.CDFmt.replace("%1", "") : null;
@@ -721,11 +739,17 @@ Skills_Window.prototype.drawItem = function(treeObj, index) {
         this.contents.fontSize = this.itemHeight() / 3;
 
         if (treeObj.currentLevel() === treeObj.maxLevel())
-            var text = "MAX";
+            var text = SkillTreesSystem._maxedSkillText;
         else
             text = treeObj.currentLevel() + "/" + treeObj.maxLevel();
 
-        this.drawText(text, x + 2, y + this.itemHeight() / 4, this.itemWidth() - 4, 'center');
+        this.drawText(
+            text,
+            x + 2,
+            y + this.itemHeight() / 4 + SkillTreesSystem._maxedSkillTextYPosition,
+            this.itemWidth() - 4,
+            'center'
+        );
 
         this.contents.fontSize = size;
     }
