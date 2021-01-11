@@ -165,6 +165,7 @@
  * - Fixed game crashes when actor have no trees.
  * - Improved font size for long skill descriptions.
  * - Text for maxed skill level can be changed as plugin parameter.
+ * - Reworked example skills.
  *
  */
 
@@ -1409,6 +1410,10 @@ function eva(value) {
 // Skills Example
 //=============================================================================
 
+//-----------------------------------------------------------------------------
+// Berserk
+//
+
 // This skill is a single-level skill.
 guard = skill('guard', [2], [ // Skill ID from database skills.
     [cost(1)]        // Skill requirement. This skill cost 1 skill point.
@@ -1443,6 +1448,9 @@ spark = skill('spark', [10], [
     [cost(1)]
 ]);
 
+//-----------------------------------------------------------------------------
+// Berserk2 (sample with other requirements and on learn actions)
+//
 
 guard2 = skill('guard2', [2], [
     [cost(1), switchReq(1)], // Requires switch 1 to be true.
@@ -1479,6 +1487,80 @@ armorBreak2 = skill('armorBreak2', [16, 17, 18], [
     [cost(3)]
 ]);
 
+//-----------------------------------------------------------------------------
+// Mage
+//
+
+fire = skill('fire', [118, 119, 120], [
+    [cost(1)],
+    [cost(2)],
+    [cost(3)]
+]);
+flame = skill('flame', [121, 122, 123], [
+    [cost(1), skillReq(fire, 1)],
+    [cost(2), skillReq(fire, 2)],
+    [cost(3), skillReq(fire, 3)]
+]);
+hellfire = skill('hellfire', [124, 125], [
+    [cost(2), lvl(5), skillReq(flame, 1)],
+    [cost(3), lvl(10), skillReq(flame, 2)]
+]);
+ice = skill('ice', [126, 127, 128], [
+    [cost(1)],
+    [cost(2)],
+    [cost(3)]
+]);
+blizzard = skill('blizzard', [129, 130, 131], [
+    [cost(1), skillReq(ice, 1)],
+    [cost(2), skillReq(ice, 2)],
+    [cost(3), skillReq(ice, 3)]
+]);
+hellfrost = skill('hellfrost', [132, 133], [
+    [cost(2), lvl(5), skillReq(blizzard, 1)],
+    [cost(3), lvl(10), skillReq(blizzard, 2)]
+]);
+enchanceWeapon = skill('enchanceWeapon', [390, 391, 392], [
+    [cost(1)],
+    [cost(2)],
+    [cost(3)]
+]);
+magicShield = skill('magicShield', [393, 394, 395], [
+    [cost(1)],
+    [cost(2)],
+    [cost(3)]
+]);
+concentration = skill('concentration', [396, 397, 398], [
+    [cost(1)],
+    [cost(2)],
+    [cost(3)]
+]);
+blink = skill('blink', [449], [
+    [cost(2), lvl(10)]
+]);
+
+//-----------------------------------------------------------------------------
+// Human
+//
+
+firstAid = skill('firstAid', [440, 441, 442], [
+    [cost(1)],
+    [cost(2), lvl(5)],
+    [cost(3), lvl(10)]
+]);
+ironSkin = skill('ironSkin', [443, 444, 445], [
+    [cost(1)],
+    [cost(2), lvl(5)],
+    [cost(3), lvl(10)]
+]);
+ironWill = skill('ironWill', [446, 447, 448], [
+    [cost(1)],
+    [cost(2), lvl(5)],
+    [cost(3), lvl(10)]
+]);
+secondWind = skill('secondWind', [449], [
+    [cost(2), skillReq(firstAid), skillReq(ironSkin), skillReq(ironWill)]
+]);
+
 /**
  * Arrow pointing down.
  *
@@ -1491,18 +1573,118 @@ arrowDown = new Arrow(28);
  *
  * @type {Arrow}
  */
-arrowRight = new Arrow(30);
+arrowDownRight = new Arrow(30);
 
 /**
  * Arrow pointing from top right corner to left down.
  *
  * @type {Arrow}
  */
-arrowLeft = new Arrow(29);
+arrowDownLeft = new Arrow(29);
+
+/**
+ * Arrow pointing from left to right.
+ *
+ * @type {Arrow}
+ */
+arrowRight = new Arrow(15);
+
+/**
+ * Arrow pointing from right to left.
+ *
+ * @type {Arrow}
+ */
+arrowLeft = new Arrow(13);
 
 //=============================================================================
 // Skill Trees Example
 //=============================================================================
+// Null represents empty square in the skill window.
+// Arrow points from one skill to another.
+//
+// If you want 1 tree for several actors/classes
+// then you should declare it before `actor2trees`, `class2trees` and `otherTrees`.
+
+SkillTreesSystem.humanTree = skillTree('Human', 'human_tree', [
+    null,   firstAid,     null,             ironSkin,       null,           ironWill,   null,
+    null,   null,         arrowDownRight,   arrowDown,      arrowDownLeft,  null,       null,
+    null,   null,         null,             secondWind,     null,           null,       null
+]);
+
+/**
+ * Contain trees setup tied to class ID. Trees will be added to actor on class initialization.
+ *
+ * @type {{"1": classId, "2": SkillTrees}}
+ */
+SkillTreesSystem.class2trees = {
+    1: skillTrees(10, [ // Actor will receive additional points every time he takes new class.
+        skillTree('Class 1', 'Class 1', [
+            // Null represents empty square in the skill window.
+            // Arrow points from one skill to another.
+            null,   null,           null,          combatReflexes,     null,            guard,           null,
+            null,   null,           arrowDownLeft, arrowDown,          null,            null,            null,
+            null,   dualAttack,     null,          doubleAttack,       null,            null,            null,
+            null,   null,           null,          arrowDown,          null,            spark,           null,
+            null,   null,           null,          tripleAttack,       null,            null,            null,
+            null,   null,           null,          arrowDown,          null,            null,            null,
+            null,   null,           null,          berserkerDance,     null,            null,            null,
+            null,   null,           null,          arrowDown,          arrowDownRight,  null,            null,
+            null,   null,           null,          rampage,            null,            armorBreak,      null,
+        ]),
+        skillTree('Class 11', 'Class 11', [
+            null,   null,           null,          combatReflexes,     null,       null,            null,
+            null,   null,           arrowDownLeft, arrowDown,          null,       null,            null,
+            null,   dualAttack,     null,          doubleAttack,       null,       null,            null,
+            null,   null,           null,          arrowDown,          null,       null,            null,
+            null,   null,           null,          tripleAttack,       null,       null,            null,
+            null,   null,           null,          arrowDown,          null,       null,            null,
+            null,   null,           null,          berserkerDance,     null,       null,            null,
+            null,   null,           null,          arrowDown,          null,       null,            null,
+            null,   null,           null,          rampage,            null,       null,            null,
+        ])]
+    ),
+    2: skillTrees(20, [
+        skillTree('Berserk', 'berserk_tree', [
+            // Null represents empty square in the skill window.
+            // Arrow points from one skill to another.
+            null,   null,           null,          combatReflexes,     null,            guard,           null,
+            null,   null,           arrowDownLeft, arrowDown,          null,            null,            null,
+            null,   dualAttack,     null,          doubleAttack,       null,            null,            null,
+            null,   null,           null,          arrowDown,          null,            spark,           null,
+            null,   null,           null,          tripleAttack,       null,            null,            null,
+            null,   null,           null,          arrowDown,          null,            null,            null,
+            null,   null,           null,          berserkerDance,     null,            null,            null,
+            null,   null,           null,          arrowDown,          arrowDownRight,  null,            null,
+            null,   null,           null,          rampage,            null,            armorBreak,      null,
+        ])]
+    ),
+    3: skillTrees(20, [
+        skillTree('Mage', 'mage_tree', [
+            null, fire,             arrowRight, flame,      arrowRight, hellfire,   null,
+            null, null,             null,       null,       null,       null,       null,
+            null, ice,              arrowRight, blizzard,   arrowRight, hellfrost,  null,
+            null, null,             null,       null,       null,       null,       null,
+            null, enchanceWeapon,   null,       null,       null,       null,       null,
+            null, null,             null,       null,       null,       null,       null,
+            null, magicShield,      null,       null,       null,       null,       null,
+            null, null,             null,       null,       null,       null,       null,
+            null, concentration,    null,       null,       null,       null,       null,
+        ])]
+    ),
+    4: skillTrees(40, [
+        skillTree('Class 4', 'class_4', [
+            null,   null,           null,          null,               null,       guard,           null,
+            null,   null,           null,          null,               null,       null,            null,
+            null,   null,           null,          null,               null,       null,            null,
+            null,   null,           null,          null,               null,       armorBreak,      null,
+            null,   null,           null,          null,               null,       null,            null,
+            null,   null,           null,          null,               null,       null,            null,
+            null,   null,           null,          null,               null,       null,            null,
+            null,   null,           null,          null,               null,       null,            null,
+            null,   null,           null,          null,               null,       null,            null,
+        ])]
+    )
+};
 
 /**
  * Contain trees setup tied to actor ID. Trees will be added to actor on actor initialization.
@@ -1510,23 +1692,29 @@ arrowLeft = new Arrow(29);
  * @type {{"1": actorId, "2": SkillTrees}}
  */
 SkillTreesSystem.actor2trees = {
-    1: skillTrees(100, [// Character will have 100 skill points to spend at the beginning.
-        skillTree('Berserk', 'berserk_tree', [
+    1: skillTrees(100, [
+        SkillTreesSystem.humanTree
+    ]),
+    2: skillTrees(100, [
+        SkillTreesSystem.humanTree
+    ]),
+    3: skillTrees(100, [// Character will have 100 skill points to spend at the beginning.
+        skillTree('Berserk2', 'berserk_tree2', [
             // Null represents empty square in the skill window.
             // Arrow points from one skill to another.
-            null,   null,           null,          combatReflexes,     null,       guard,           null,
-            null,   null,           arrowLeft,     arrowDown,          null,       null,            null,
-            null,   dualAttack,     null,          doubleAttack,       null,       null,            null,
-            null,   null,           null,          arrowDown,          null,       spark,            null,
-            null,   null,           null,          tripleAttack,       null,       null,            null,
-            null,   null,           null,          arrowDown,          null,       null,            null,
-            null,   null,           null,          berserkerDance,     null,       null,            null,
-            null,   null,           null,          arrowDown,          arrowRight, null,            null,
-            null,   null,           null,          rampage,            null,       armorBreak,      null,
+            null,   null,           null,          combatReflexes2,     null,           guard2,         null,
+            null,   null,           arrowDownLeft, arrowDown,           null,           null,           null,
+            null,   dualAttack2,    null,          doubleAttack2,       null,           null,           null,
+            null,   null,           null,          arrowDown,           null,           null,           null,
+            null,   null,           null,          tripleAttack2,       null,           null,           null,
+            null,   null,           null,          arrowDown,           null,           null,           null,
+            null,   null,           null,          berserkerDance2,     null,           null,           null,
+            null,   null,           null,          arrowDown,           arrowDownRight, null,           null,
+            null,   null,           null,          rampage2,            null,           armorBreak2,    null,
         ]),
         skillTree('Second Tree', 'second_tree', [
             null,   null,           null,          combatReflexes,     null,       null,            null,
-            null,   null,           arrowLeft,     arrowDown,          null,       null,            null,
+            null,   null,           arrowDownLeft, arrowDown,          null,       null,            null,
             null,   dualAttack,     null,          doubleAttack,       null,       null,            null,
             null,   null,           null,          arrowDown,          null,       null,            null,
             null,   null,           null,          tripleAttack,       null,       null,            null,
@@ -1545,23 +1733,11 @@ SkillTreesSystem.actor2trees = {
             null,   null,           null,          null,               null,       null,            null,
             null,   null,           null,          null,               null,       null,            null,
             null,   null,           null,          null,               null,       null,            null,
-        ])]
-    ),
-    2: skillTrees(100, [
-        skillTree('Berserk2', 'berserk_tree2', [
-            null,   null,           null,          combatReflexes2,     null,       guard2,           null,
-            null,   null,           arrowLeft,     arrowDown,          null,       null,            null,
-            null,   dualAttack2,     null,          doubleAttack2,       null,       null,            null,
-            null,   null,           null,          arrowDown,          null,       null,            null,
-            null,   null,           null,          tripleAttack2,       null,       null,            null,
-            null,   null,           null,          arrowDown,          null,       null,            null,
-            null,   null,           null,          berserkerDance2,     null,       null,            null,
-            null,   null,           null,          arrowDown,          arrowRight, null,            null,
-            null,   null,           null,          rampage2,            null,       armorBreak2,      null,
-        ])]
-    ),
-    3: _sample_sameTreeSetupForDifferentActors(),
-    4: _sample_sameTreeSetupForDifferentActors()
+        ]),
+        SkillTreesSystem.humanTree
+    ]),
+    4: _sample_sameTreeSetupForDifferentActors(),
+    5: _sample_sameTreeSetupForDifferentActors()
 };
 
 /**
@@ -1572,7 +1748,7 @@ function _sample_sameTreeSetupForDifferentActors() {
     return skillTrees(100, [
         skillTree('Same Trees 1', 'same_trees_1', [
             null,   null,           null,          combatReflexes,     null,       guard,           null,
-            null,   null,           arrowLeft,     arrowDown,          null,       null,            null,
+            null,   null,           arrowDownLeft, arrowDown,          null,       null,            null,
             null,   dualAttack,     null,          doubleAttack,       null,       null,            null,
             null,   null,           null,          arrowDown,          null,       null,            null,
             null,   null,           null,          tripleAttack,       null,       null,            null,
@@ -1583,7 +1759,7 @@ function _sample_sameTreeSetupForDifferentActors() {
         ]),
         skillTree('Same Trees 2', 'same_trees_2', [
             null,   null,           null,          combatReflexes,     null,       null,            null,
-            null,   null,           arrowLeft,     arrowDown,          null,       null,            null,
+            null,   null,           arrowDownLeft, arrowDown,          null,       null,            null,
             null,   dualAttack,     null,          doubleAttack,       null,       null,            null,
             null,   null,           null,          arrowDown,          null,       null,            null,
             null,   null,           null,          tripleAttack,       null,       null,            null,
@@ -1602,8 +1778,9 @@ function _sample_sameTreeSetupForDifferentActors() {
             null,   null,           null,          null,               null,       null,            null,
             null,   null,           null,          null,               null,       null,            null,
             null,   null,           null,          null,               null,       null,            null,
-        ])]
-    )
+        ]),
+        SkillTreesSystem.humanTree
+    ])
 }
 
 SkillTreesSystem.separateTree = skillTree('Fourth Tree', 'f_tree', [
@@ -1623,105 +1800,32 @@ SkillTreesSystem.separateTree = skillTree('Fourth Tree', 'f_tree', [
  * To see it normally - set {@link SkillTreesSystem#skillWindowMaxCols} to 11.
  */
 SkillTreesSystem.bigTree = skillTree('Big Tree (see comments)', 'big_tree', [
-    null,   null,           null,          combatReflexes,     null,       guard,           null,          combatReflexes,     null,       guard,           null,
-    null,   null,           arrowLeft,     arrowDown,          null,       null,            arrowLeft,     arrowDown,          null,       null,            null,
-    null,   dualAttack,     null,          doubleAttack,       null,       dualAttack,      null,          doubleAttack,       null,       null,            null,
-    null,   null,           null,          arrowDown,          null,       spark,           null,          arrowDown,          null,       spark,           null,
-    null,   null,           null,          tripleAttack,       null,       null,            null,          tripleAttack,       null,       null,            null,
-    null,   null,           null,          arrowDown,          null,       null,            null,          arrowDown,          null,       null,            null,
-    null,   null,           null,          berserkerDance,     null,       null,            null,          berserkerDance,     null,       null,            null,
-    null,   null,           null,          arrowDown,          arrowRight, null,            null,          arrowDown,          arrowRight, null,            null,
-    null,   null,           null,          rampage,            null,       armorBreak,      null,          rampage,            null,       armorBreak,      null,
-    null,   null,           arrowLeft,     arrowDown,          null,       null,            arrowLeft,     arrowDown,          null,       null,            null,
-    null,   dualAttack,     null,          doubleAttack,       null,       dualAttack,      null,          doubleAttack,       null,       null,            null,
-    null,   null,           null,          arrowDown,          null,       spark,           null,          arrowDown,          null,       spark,           null,
-    null,   null,           null,          tripleAttack,       null,       null,            null,          tripleAttack,       null,       null,            null,
-    null,   null,           null,          arrowDown,          null,       null,            null,          arrowDown,          null,       null,            null,
-    null,   null,           null,          berserkerDance,     null,       null,            null,          berserkerDance,     null,       null,            null,
-    null,   null,           null,          arrowDown,          arrowRight, null,            null,          arrowDown,          arrowRight, null,            null,
-    null,   null,           null,          rampage,            null,       armorBreak,      null,          rampage,            null,       armorBreak,      null,
-    null,   null,           arrowLeft,     arrowDown,          null,       null,            arrowLeft,     arrowDown,          null,       null,            null,
-    null,   dualAttack,     null,          doubleAttack,       null,       dualAttack,      null,          doubleAttack,       null,       null,            null,
-    null,   null,           null,          arrowDown,          null,       spark,           null,          arrowDown,          null,       spark,           null,
-    null,   null,           null,          tripleAttack,       null,       null,            null,          tripleAttack,       null,       null,            null,
-    null,   null,           null,          arrowDown,          null,       null,            null,          arrowDown,          null,       null,            null,
-    null,   null,           null,          berserkerDance,     null,       null,            null,          berserkerDance,     null,       null,            null,
-    null,   null,           null,          arrowDown,          arrowRight, null,            null,          arrowDown,          arrowRight, null,            null,
-    null,   null,           null,          rampage,            null,       armorBreak,      null,          rampage,            null,       armorBreak,      null
+    null,   null,           null,          combatReflexes,     null,            guard,           null,          combatReflexes,     null,           guard,           null,
+    null,   null,           arrowDownLeft, arrowDown,          null,            null,            arrowDownLeft, arrowDown,          null,           null,            null,
+    null,   dualAttack,     null,          doubleAttack,       null,            dualAttack,      null,          doubleAttack,       null,           null,            null,
+    null,   null,           null,          arrowDown,          null,            spark,           null,          arrowDown,          null,           spark,           null,
+    null,   null,           null,          tripleAttack,       null,            null,            null,          tripleAttack,       null,           null,            null,
+    null,   null,           null,          arrowDown,          null,            null,            null,          arrowDown,          null,           null,            null,
+    null,   null,           null,          berserkerDance,     null,            null,            null,          berserkerDance,     null,           null,            null,
+    null,   null,           null,          arrowDown,          arrowDownRight,  null,            null,          arrowDown,          arrowDownRight, null,            null,
+    null,   null,           null,          rampage,            null,            armorBreak,      null,          rampage,            null,           armorBreak,      null,
+    null,   null,           arrowDownLeft, arrowDown,          null,            null,            arrowDownLeft, arrowDown,          null,           null,            null,
+    null,   dualAttack,     null,          doubleAttack,       null,            dualAttack,      null,          doubleAttack,       null,           null,            null,
+    null,   null,           null,          arrowDown,          null,            spark,           null,          arrowDown,          null,           spark,           null,
+    null,   null,           null,          tripleAttack,       null,            null,            null,          tripleAttack,       null,           null,            null,
+    null,   null,           null,          arrowDown,          null,            null,            null,          arrowDown,          null,           null,            null,
+    null,   null,           null,          berserkerDance,     null,            null,            null,          berserkerDance,     null,           null,            null,
+    null,   null,           null,          arrowDown,          arrowDownRight,  null,            null,          arrowDown,          arrowDownRight, null,            null,
+    null,   null,           null,          rampage,            null,            armorBreak,      null,          rampage,            null,           armorBreak,      null,
+    null,   null,           arrowDownLeft, arrowDown,          null,            null,            arrowDownLeft, arrowDown,          null,           null,            null,
+    null,   dualAttack,     null,          doubleAttack,       null,            dualAttack,      null,          doubleAttack,       null,           null,            null,
+    null,   null,           null,          arrowDown,          null,            spark,           null,          arrowDown,          null,           spark,           null,
+    null,   null,           null,          tripleAttack,       null,            null,            null,          tripleAttack,       null,           null,            null,
+    null,   null,           null,          arrowDown,          null,            null,            null,          arrowDown,          null,           null,            null,
+    null,   null,           null,          berserkerDance,     null,            null,            null,          berserkerDance,     null,           null,            null,
+    null,   null,           null,          arrowDown,          arrowDownRight,  null,            null,          arrowDown,          arrowDownRight, null,            null,
+    null,   null,           null,          rampage,            null,            armorBreak,      null,          rampage,            null,           armorBreak,      null
 ]);
-
-/**
- * Contain trees setup tied to class ID. Trees will be added to actor on class initialization.
- *
- * @type {{"1": classId, "2": SkillTrees}}
- */
-SkillTreesSystem.class2trees = {
-    1: skillTrees(10, [ // Actor will receive additional points every time he takes new class.
-        skillTree('Class 1', 'Class 1', [
-            // Null represents empty square in the skill window.
-            // Arrow points from one skill to another.
-            null,   null,           null,          combatReflexes,     null,       guard,           null,
-            null,   null,           arrowLeft,     arrowDown,          null,       null,            null,
-            null,   dualAttack,     null,          doubleAttack,       null,       null,            null,
-            null,   null,           null,          arrowDown,          null,       spark,            null,
-            null,   null,           null,          tripleAttack,       null,       null,            null,
-            null,   null,           null,          arrowDown,          null,       null,            null,
-            null,   null,           null,          berserkerDance,     null,       null,            null,
-            null,   null,           null,          arrowDown,          arrowRight, null,            null,
-            null,   null,           null,          rampage,            null,       armorBreak,      null,
-        ]),
-        skillTree('Class 11', 'Class 11', [
-            null,   null,           null,          combatReflexes,     null,       null,            null,
-            null,   null,           arrowLeft,     arrowDown,          null,       null,            null,
-            null,   dualAttack,     null,          doubleAttack,       null,       null,            null,
-            null,   null,           null,          arrowDown,          null,       null,            null,
-            null,   null,           null,          tripleAttack,       null,       null,            null,
-            null,   null,           null,          arrowDown,          null,       null,            null,
-            null,   null,           null,          berserkerDance,     null,       null,            null,
-            null,   null,           null,          arrowDown,          null,       null,            null,
-            null,   null,           null,          rampage,            null,       null,            null,
-        ])]
-    ),
-    2: skillTrees(20, [
-        skillTree('Class 2', 'Class 2', [
-            null,   null,           null,          null,               null,       guard,           null,
-            null,   null,           null,          null,               null,       null,            null,
-            null,   null,           null,          null,               null,       null,            null,
-            null,   null,           null,          null,               null,       armorBreak,      null,
-            null,   null,           null,          null,               null,       null,            null,
-            null,   null,           null,          null,               null,       null,            null,
-            null,   null,           null,          null,               null,       null,            null,
-            null,   null,           null,          null,               null,       null,            null,
-            null,   null,           null,          null,               null,       null,            null,
-        ])]
-    ),
-    3: skillTrees(30, [
-        skillTree('Class 3', 'Class 3', [
-            null,   null,           null,          null,               null,       guard,           null,
-            null,   null,           null,          null,               null,       null,            null,
-            null,   null,           null,          null,               null,       null,            null,
-            null,   null,           null,          null,               null,       armorBreak,      null,
-            null,   null,           null,          null,               null,       null,            null,
-            null,   null,           null,          null,               null,       null,            null,
-            null,   null,           null,          null,               null,       null,            null,
-            null,   null,           null,          null,               null,       null,            null,
-            null,   null,           null,          null,               null,       null,            null,
-        ])]
-    ),
-    4: skillTrees(40, [
-        skillTree('Class 4', 'Class 4', [
-            null,   null,           null,          null,               null,       guard,           null,
-            null,   null,           null,          null,               null,       null,            null,
-            null,   null,           null,          null,               null,       null,            null,
-            null,   null,           null,          null,               null,       armorBreak,      null,
-            null,   null,           null,          null,               null,       null,            null,
-            null,   null,           null,          null,               null,       null,            null,
-            null,   null,           null,          null,               null,       null,            null,
-            null,   null,           null,          null,               null,       null,            null,
-            null,   null,           null,          null,               null,       null,            null,
-        ])]
-    )
-};
 
 /**
  * Contain trees, which not belong to specific actor or class.

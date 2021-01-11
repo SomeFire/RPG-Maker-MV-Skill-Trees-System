@@ -254,6 +254,7 @@
  * - Fixed game crashes when actor have no trees.
  * - Improved font size for long skill descriptions.
  * - Text for maxed skill level can be changed as plugin parameter.
+ * - Reworked example skills.
  *
  */
 
@@ -1710,7 +1711,6 @@ SkillTreesSystem.resetSkillTrees = function(actor, item) {
 
     if (item.meta.resetSkillTrees === "all") {
         if (SkillTreesSystem.singlePointsPool) {
-
             for (let tree of actor.skillTrees.trees)
                 points += SkillTreesSystem.resetSkillTree(actor, tree);
 
