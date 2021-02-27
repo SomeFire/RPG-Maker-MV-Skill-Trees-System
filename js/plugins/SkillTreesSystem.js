@@ -432,6 +432,8 @@ Scene_SkillTrees.prototype.create = function() {
         this._skillsWindow._confirmationButton = this._confirmationButton;
         this._confirmationButton.hide();
     }
+
+    this.refreshActor();
 };
 
 Scene_SkillTrees.prototype.start = function() {
