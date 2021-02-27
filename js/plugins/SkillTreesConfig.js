@@ -211,6 +211,9 @@ class Skill extends TreeObject {
     }
 
     iconId() {
+        if ($dataSkills[this.lvls[0]] == null)
+            throw new TypeError("RPGMV database does not contain skill with ID " + this.lvls[0]);
+
         return $dataSkills[this.lvls[0]].iconIndex;
     }
 
