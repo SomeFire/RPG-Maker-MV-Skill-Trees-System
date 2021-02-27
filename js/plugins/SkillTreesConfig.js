@@ -222,12 +222,12 @@ class Skill extends TreeObject {
         if (this.level < 0 && this.level >= this.lvls.length)
             return false;
 
-        var reqs = this.requirements();
+        let reqs = this.requirements();
 
         if (!reqs)
             return false;
 
-        var res = true;
+        let res = true;
 
         for (let req of reqs)
             res &= req.meets(actor, tree);
@@ -239,8 +239,8 @@ class Skill extends TreeObject {
         if (this.level < 0 && this.level >= this.lvls.length)
             return;
 
-        var reqs = this.requirements();
-        var onLearnActions = this.onLearnActions();
+        let reqs = this.requirements();
+        let onLearnActions = this.onLearnActions();
 
         // Reqs can't be null here.
         for (let req of reqs)
@@ -301,7 +301,7 @@ class Skill extends TreeObject {
     }
 
     clone() {
-        var copy = new Skill(this.symbol, this.lvls, this.reqs, this.learnActions);
+        let copy = new Skill(this.symbol, this.lvls, this.reqs, this.learnActions);
 
         copy.level = this.level;
 
@@ -384,7 +384,7 @@ class SkillTree {
     }
 
     clone() {
-        var copy = new SkillTree();
+        let copy = new SkillTree();
 
         copy.name = this.name;
         copy.symbol = this.symbol;
@@ -654,9 +654,9 @@ class SkillRequirement extends Requirement {
     }
 
     meets(actor, tree) {
-        var res = false;
+        let res = false;
 
-        for (var i = this.lvl - 1; i < this.lvls.length; i++)
+        for (let i = this.lvl - 1; i < this.lvls.length; i++)
             res |= actor.hasSkill(this.lvls[i]);
 
         return res;
@@ -873,7 +873,7 @@ class OnLearnChangeVariable extends OnLearnAction {
     }
 
     action(actor, tree) {
-        var oldVal = $gameVariables.value(this.varId);
+        let oldVal = $gameVariables.value(this.varId);
 
         $gameVariables.setValue(this.varId, oldVal + this.inc)
     }

@@ -452,7 +452,7 @@ Scene_SkillTrees.prototype.refresh = function() {
 };
 
 Scene_SkillTrees.prototype.refreshActor = function() {
-    var actor = this.actor();
+    let actor = this.actor();
     this._treesWindow.setActor(actor);
     this._skillsWindow.setActor(actor);
     this._descriptionWindow.setActor(actor);
@@ -618,12 +618,12 @@ Trees_Window.prototype._createAllParts = function() {
 };
 
 Trees_Window.prototype._refreshArrows = function() {
-    var w = this._width;
-    var h = this._height;
-    var p = 24; // arrow width
-    var q = p/2; // arrow height
-    var sx = 96+p;
-    var sy = 0+p;
+    let w = this._width;
+    let h = this._height;
+    let p = 24; // arrow width
+    let q = p/2; // arrow height
+    let sx = 96+p;
+    let sy = 0+p;
     this._leftArrowSprite.bitmap = this._windowskin;
     this._leftArrowSprite.anchor.x = 0.5;
     this._leftArrowSprite.anchor.y = 0.5;
@@ -637,7 +637,7 @@ Trees_Window.prototype._refreshArrows = function() {
 };
 
 Trees_Window.prototype._updateArrows = function() {
-    var tooManyItems = this.maxItems() > SkillTreesSystem.treeWindowMaxCols;
+    let tooManyItems = this.maxItems() > SkillTreesSystem.treeWindowMaxCols;
 
     this._leftArrowSprite.visible = this.isOpen() && this._leftArrowSprite && tooManyItems;
     this._rightArrowSprite.visible = this.isOpen() && this._rightArrowSprite && tooManyItems;
@@ -710,9 +710,9 @@ Skills_Window.prototype.findTree = function(symbol) {
         return null;
 
     if (this._actor && this._actor.skillTrees) {
-        var trees = this._actor.skillTrees.trees;
+        let trees = this._actor.skillTrees.trees;
 
-        for (var i = 0; i < trees.length; i++) {
+        for (let i = 0; i < trees.length; i++) {
             if (trees[i].symbol === symbol)
                 return trees[i];
         }
@@ -730,15 +730,15 @@ Skills_Window.prototype.itemHeight = function() {
 };
 
 Skills_Window.prototype.drawItem = function(treeObj, index) {
-    var x = this.itemWidth() * (index % SkillTreesSystem.skillWindowMaxCols) - this._scrollX;
-    var y = this.itemHeight() * Math.floor(index / SkillTreesSystem.skillWindowMaxCols) - this._scrollY;
+    let x = this.itemWidth() * (index % SkillTreesSystem.skillWindowMaxCols) - this._scrollX;
+    let y = this.itemHeight() * Math.floor(index / SkillTreesSystem.skillWindowMaxCols) - this._scrollY;
 
     this.changePaintOpacity(treeObj.isEnabled(this._actor, this._tree));
     this.drawIcon(treeObj.iconId(), x, y);
     this.changePaintOpacity(1);
 
     if (treeObj instanceof Skill) {
-        var size = this.contents.fontSize;
+        let size = this.contents.fontSize;
         this.contents.fontSize = this.itemHeight() / 3;
 
         if (treeObj.currentLevel() === treeObj.maxLevel())
@@ -763,11 +763,11 @@ Skills_Window.prototype.drawText = function(text, x, y, maxWidth, align) {
 };
 
 Skills_Window.prototype.drawIcon = function(iconIndex, x, y) {
-    var bitmap = ImageManager.loadSystem('IconSet');
-    var pw = Window_Base._iconWidth;
-    var ph = Window_Base._iconHeight;
-    var sx = iconIndex % 16 * pw;
-    var sy = Math.floor(iconIndex / 16) * ph;
+    let bitmap = ImageManager.loadSystem('IconSet');
+    let pw = Window_Base._iconWidth;
+    let ph = Window_Base._iconHeight;
+    let sx = iconIndex % 16 * pw;
+    let sy = Math.floor(iconIndex / 16) * ph;
     this.contents.blt(bitmap, sx, sy, pw, ph, x, y, pw * SkillTreesSystem.skillScale, ph * SkillTreesSystem.skillScale);
 };
 
@@ -838,8 +838,8 @@ Skills_Window.prototype.selectLast = function() {
 };
 
 Skills_Window.prototype.itemRect = function(index) {
-    var rect = new Rectangle();
-    var maxCols = this.maxCols();
+    let rect = new Rectangle();
+    let maxCols = this.maxCols();
     rect.width = this.itemWidth();
     rect.height = this.itemHeight();
     rect.x = this.itemWidth() * (index % maxCols) - this._scrollX;
@@ -849,7 +849,7 @@ Skills_Window.prototype.itemRect = function(index) {
 
 Skills_Window.prototype.updateCursor = function() {
     if (this.isCursorVisible()) {
-        var rect = this.itemRect(this.index());
+        let rect = this.itemRect(this.index());
 
         if (SkillTreesSystem.skillCursorMargin) {
             this.setCursorRect(rect.x + this.spacing() / 2, rect.y + this.spacing() / 2,
@@ -861,11 +861,11 @@ Skills_Window.prototype.updateCursor = function() {
 
     /*
     if (this._cursorAll) {
-        var allRowsHeight = this.maxRows() * this.itemHeight();
+        let allRowsHeight = this.maxRows() * this.itemHeight();
         this.setCursorRect(0, 0, this.contents.width, allRowsHeight);
         this.setTopRow(0);
     } else if (this.isCursorVisible()) {
-        var rect = this.itemRect(this.index());
+        let rect = this.itemRect(this.index());
         this.setCursorRect(rect.x, rect.y, rect.width, rect.height);
     } else {
         this.setCursorRect(0, 0, 0, 0);
@@ -874,11 +874,11 @@ Skills_Window.prototype.updateCursor = function() {
 };
 
 Skills_Window.prototype.cursorDown = function(wrap) {
-    var index = this.index();
-    var maxItems = this.maxItems();
-    var maxCols = SkillTreesSystem.skillWindowMaxCols;
-    var index0 = this.index() % maxCols;
-    var skills = this._tree.skills;
+    let index = this.index();
+    let maxItems = this.maxItems();
+    let maxCols = SkillTreesSystem.skillWindowMaxCols;
+    let index0 = this.index() % maxCols;
+    let skills = this._tree.skills;
 
     while (index < maxItems) {
         index = index + maxCols;
@@ -895,12 +895,12 @@ Skills_Window.prototype.cursorDown = function(wrap) {
 };
 
 Skills_Window.prototype.cursorUp = function(wrap) {
-    var index = this.index();
-    var maxItems = this.maxItems();
-    var maxCols = SkillTreesSystem.skillWindowMaxCols;
-    var index0bound = Math.floor(maxItems / maxCols) * maxCols;
-    var index0 = this.index() % maxCols + index0bound;
-    var skills = this._tree.skills;
+    let index = this.index();
+    let maxItems = this.maxItems();
+    let maxCols = SkillTreesSystem.skillWindowMaxCols;
+    let index0bound = Math.floor(maxItems / maxCols) * maxCols;
+    let index0 = this.index() % maxCols + index0bound;
+    let skills = this._tree.skills;
 
     while (index >= 0) {
         index = index - maxCols;
@@ -917,10 +917,10 @@ Skills_Window.prototype.cursorUp = function(wrap) {
 };
 
 Skills_Window.prototype.cursorRight = function(wrap) {
-    var index = this.index();
-    var maxItems = this.maxItems();
-    var maxCols = SkillTreesSystem.skillWindowDrawCols;
-    var skills = this._tree.skills;
+    let index = this.index();
+    let maxItems = this.maxItems();
+    let maxCols = SkillTreesSystem.skillWindowDrawCols;
+    let skills = this._tree.skills;
 
     if (maxCols >= 2 && (index < maxItems - 1 || (wrap && this.isHorizontal()))) {
         while (++index < maxItems && !(skills[index] instanceof Skill));
@@ -931,10 +931,10 @@ Skills_Window.prototype.cursorRight = function(wrap) {
 };
 
 Skills_Window.prototype.cursorLeft = function(wrap) {
-    var index = this.index();
-    var maxItems = this.maxItems();
-    var maxCols = SkillTreesSystem.skillWindowDrawCols;
-    var skills = this._tree.skills;
+    let index = this.index();
+    let maxItems = this.maxItems();
+    let maxCols = SkillTreesSystem.skillWindowDrawCols;
+    let skills = this._tree.skills;
 
     if (maxCols >= 2 && (index > 0 || (wrap && this.isHorizontal()))) {
         while (--index > 0 && !(skills[index] instanceof Skill));
@@ -955,7 +955,7 @@ Skills_Window.prototype._refreshCursor = function() {
 };
 
 Skills_Window.prototype.isCursorVisible = function() {
-    var row = this.row();
+    let row = this.row();
 
     return row >= this.topRow() && row <= this.bottomRow();
 };
@@ -964,7 +964,7 @@ SkillTreesSystem.ensureCursorVisible = Window_Selectable.prototype.ensureCursorV
 Skills_Window.prototype.ensureCursorVisible = function() {
     SkillTreesSystem.ensureCursorVisible.call(this);
 
-    var col = this.column();
+    let col = this.column();
     if (col < this.rightColumn()) {
         this.setRightColumn(col);
     } else if (col > this.leftColumn()) {
@@ -972,7 +972,7 @@ Skills_Window.prototype.ensureCursorVisible = function() {
     }
 
     /*
-    var row = this.row();
+    let row = this.row();
     if (row < this.topRow()) {
         this.setTopRow(row);
     } else if (row > this.bottomRow()) {
@@ -994,7 +994,7 @@ Skills_Window.prototype.maxRightColumn = function() {
 };
 
 Skills_Window.prototype.setRightColumn = function(col) {
-    var scrollX = col.clamp(0, this.maxRightColumn()) * this.itemWidth();
+    let scrollX = col.clamp(0, this.maxRightColumn()) * this.itemWidth();
     if (this._scrollX !== scrollX) {
         this._scrollX = scrollX;
         this.refresh();
@@ -1101,7 +1101,7 @@ Description_Window.prototype.refresh = function() {
 
         if (this._skill) {
             // Line 5.
-            var skill = this._skill.nextLevel();
+            let skill = this._skill.nextLevel();
 
             this.drawIcon(this._skill.iconId(), 0, this.lineHeight() * line);
             this.drawText(skill.name, Window_Base._iconWidth + this.spacing(), this.lineHeight() * line, this.windowWidth() - w - Window_Base._iconWidth - this.spacing());
@@ -1115,7 +1115,7 @@ Description_Window.prototype.refresh = function() {
             line++;
 
             // Lines 8, 9, 10.
-            var reqs = this._skill.requirements();
+            let reqs = this._skill.requirements();
 
             if (reqs) {
                 this.drawLine(this.lineHeight() * line++);
@@ -1130,10 +1130,10 @@ Description_Window.prototype.drawActorFreePoints = function(actor, tree, x, y, w
     if (!actor.skillTrees)
         return;
 
-    var text = SkillTreesSystem.freePointsText();
-    var textWidth = this.textWidth(text);
+    let text = SkillTreesSystem.freePointsText();
+    let textWidth = this.textWidth(text);
     textWidth = (textWidth < width - 50) ? textWidth : width - 50;
-    var valWidth = width - textWidth;
+    let valWidth = width - textWidth;
 
     this.changeTextColor(this.systemColor());
     this.drawText(text, x, y, textWidth);
@@ -1145,10 +1145,10 @@ Description_Window.prototype.drawJP = function(actor, tree, x, y, width) {
     if (!actor.skillTrees)
         return;
 
-    var text = Yanfly.Param.Jp + ": ";
-    var textWidth = this.textWidth(text);
+    let text = Yanfly.Param.Jp + ": ";
+    let textWidth = this.textWidth(text);
     textWidth = (textWidth < width - 50) ? textWidth : width - 50;
-    var valWidth = width - textWidth;
+    let valWidth = width - textWidth;
 
     this.changeTextColor(this.systemColor());
     this.drawText(text, x, y, textWidth);
@@ -1157,10 +1157,10 @@ Description_Window.prototype.drawJP = function(actor, tree, x, y, width) {
 };
 
 Description_Window.prototype.drawActorTreePoints = function(actor, tree, x, y, width) {
-    var text = SkillTreesSystem.treePointsText(tree);
-    var textWidth = this.textWidth(text);
+    let text = SkillTreesSystem.treePointsText(tree);
+    let textWidth = this.textWidth(text);
     textWidth = (textWidth < width - 50) ? textWidth : width - 50;
-    var valWidth = width - textWidth;
+    let valWidth = width - textWidth;
 
     this.changeTextColor(this.systemColor());
     this.drawText(text, x, y, textWidth);
@@ -1172,7 +1172,7 @@ Description_Window.prototype.drawActorTreePoints = function(actor, tree, x, y, w
  * @param y Text line where horizontal line should be drawn.
  */
 Description_Window.prototype.drawLine = function(y) {
-    var lineY = y + this.lineHeight() / 2 - 1;
+    let lineY = y + this.lineHeight() / 2 - 1;
     this.contents.paintOpacity = 48;
     this.contents.fillRect(0, lineY, this.windowWidth() - this.padding * 2, 2, this.normalColor());
     this.contents.paintOpacity = 255;
@@ -1259,8 +1259,8 @@ Description_Window.prototype.drawTextDecreased = function(text, x, y, widthLimit
 };
 
 Description_Window.prototype.drawRequirements = function(reqs, y) {
-    for (var i = 0; i < reqs.length; i++) {
-        var req = reqs[i];
+    for (let i = 0; i < reqs.length; i++) {
+        let req = reqs[i];
 
         if (req.meets(this._actor, this._tree))
             this.changeTextColor(this.powerUpColor());
@@ -1283,7 +1283,7 @@ Description_Window.prototype.drawTextWithFontSize = function(text, x, y, fontSiz
     if (text) {
         this.resetFontSettings();
         this.contents.fontSize = fontSize;
-        var textState = { index: 0, x: x, y: y, left: x };
+        let textState = { index: 0, x: x, y: y, left: x };
         textState.text = this.convertEscapeCharacters(text);
         textState.height = this.calcTextHeight(textState, false);
         while (textState.index < textState.text.length) {
