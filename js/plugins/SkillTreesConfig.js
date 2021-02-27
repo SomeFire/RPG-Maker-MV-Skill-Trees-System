@@ -46,7 +46,7 @@
  * How to hide tree:
  *     actor.hideTree(symbol);
  *
- *  symbol - Symbol of SkillTree object.
+ *  symbol - symbol of SkillTree object.
  * ----------------------------------------------------------------------------
  * How to add skill points:
  *     actor.addTreesPoints(points, classId);
