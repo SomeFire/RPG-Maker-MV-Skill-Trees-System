@@ -182,6 +182,26 @@
  *
  *     Will be replaced with unspent skill points for actor with given ID
  *     and for tree with given treeId.
+ *
+ * To reset skills by script call:
+ *     SkillTreesSystem.resetSkillTrees(actor, treeId)
+ *     SkillTreesSystem.resetSkillTrees(actor, classId)
+ *     SkillTreesSystem.resetSkillTrees(actor, 'actor')
+ *     SkillTreesSystem.resetSkillTrees(actor, 'all')
+ *
+ *     You need to replace treeId and classId only.
+ *     'actor' and 'all' are keywords already. Do not replace them.
+ *
+ * To reset skills by item use next notes:
+ *     <resetSkillTrees:treeId>
+ *     <resetSkillTrees:classId>
+ *     <resetSkillTrees:actor>
+ *     <resetSkillTrees:all>
+ *
+ *     You need to replace treeId and classId only.
+ *     "actor" and "all" (without quotes) are keywords already.
+ *     Do not replace them.
+ *
  * ----------------------------------------------------------------------------
  *
  * If something works not as expected - check console log (F8 should open it).
@@ -249,6 +269,7 @@
  * Version 1.10:
  * - Added actor and tree to OnLearnAction.act() method.
  * - Added text command to show unspent skills.
+ * - Added script calls to reset skills.
  * - Fixed possible bug with big skill cursor when Window_Selectable spacing was overwritten.
  * - Fixed bug when skill cooldown wasn't shown without MP/TP.
  * - Fixed game crashes when actor have no trees.
@@ -1697,21 +1718,21 @@ Scene_ItemBase.prototype.applyItem = function() {
 
     this.itemTargetActors().forEach(function(target) {
         if (this.item().meta.resetSkillTrees)
-            SkillTreesSystem.resetSkillTrees(target, this.item());
+            SkillTreesSystem.resetSkillTrees(target, this.item().meta.resetSkillTrees);
     }, this);
 };
 
 /**
  * @param actor Actor.
- * @param item Item.
+ * @param target Target.
  */
-SkillTreesSystem.resetSkillTrees = function(actor, item) {
+SkillTreesSystem.resetSkillTrees = function(actor, target) {
     if (!actor.skillTrees)
         return;
 
     let points = 0;
 
-    if (item.meta.resetSkillTrees === "all") {
+    if (target === "all") {
         if (SkillTreesSystem.singlePointsPool) {
             for (let tree of actor.skillTrees.trees)
                 points += SkillTreesSystem.resetSkillTree(actor, tree);
@@ -1729,7 +1750,7 @@ SkillTreesSystem.resetSkillTrees = function(actor, item) {
                     actor.addTreesPoints(points, tree.symbol);
             }
         }
-    } else if (item.meta.resetSkillTrees === "actor") {
+    } else if (target === "actor") {
         for (let tree of actor.skillTrees.trees) {
             if (tree._actorId > 0) {
                 points = SkillTreesSystem.resetSkillTree(actor, tree);
@@ -1738,7 +1759,7 @@ SkillTreesSystem.resetSkillTrees = function(actor, item) {
             }
         }
     } else {
-        let treeId = item.meta.resetSkillTrees;
+        let treeId = target;
 
         if (treeId === 0) {
             console.warn("Unexpected class id to reset skills.");

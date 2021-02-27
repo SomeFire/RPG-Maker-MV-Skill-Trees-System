@@ -61,7 +61,20 @@
  *  skillTree - for which tree you want to know points. Optional parameter -
  *      will return points for single pool or current base class by default.
  * ----------------------------------------------------------------------------
- * How to reset skills:
+ * How to reset skills by script call:
+ *     SkillTreesSystem.resetSkillTrees(actor, treeId)
+ *     SkillTreesSystem.resetSkillTrees(actor, classId)
+ *     SkillTreesSystem.resetSkillTrees(actor, 'actor')
+ *     SkillTreesSystem.resetSkillTrees(actor, 'all')
+ *
+ *  actor - actor, who should reset skills.
+ *  treeId - symbol of the tree, which should be reset.
+ *  classId - class ID for which trees should be reset.
+ *  'actor' and 'all' are keywords already. Do NOT replace them.
+ * ----------------------------------------------------------------------------
+ * How to reset skills by item:
+ *     Use item with <resetSkillTrees:tree_id> tag to reset tree,
+ *      where tree_id is a symbol of the tree.
  *     Use item with <resetSkillTrees:class_id> tag to reset trees
  *      for specific class only, where class_id is a number of the class.
  *     Use item with <resetSkillTrees:actor> tag to reset actor trees only
@@ -92,7 +105,6 @@
  *     SkillTreesSystem.tryLearnAll(actor);
  *
  *  actor - actor, who should learn skill.
- *
  * ----------------------------------------------------------------------------
  *
  * If something works not as expected - check console log (F8 should open it).
@@ -160,6 +172,7 @@
  * Version 1.10:
  * - Added actor and tree to OnLearnAction.act() method.
  * - Added text command to show unspent skills.
+ * - Added script calls to reset skills.
  * - Fixed possible bug with big skill cursor when Window_Selectable spacing was overwritten.
  * - Fixed bug when skill cooldown wasn't shown without MP/TP.
  * - Fixed game crashes when actor have no trees.
