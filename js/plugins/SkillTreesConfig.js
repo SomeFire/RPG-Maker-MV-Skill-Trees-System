@@ -1458,9 +1458,9 @@ guard2 = skill('guard2', [2], [
     [changeVar(1, 2)] // On learn action, which increase the game variable 1 by 2.
 ]);
 combatReflexes2 = skill('combatReflexes2', [11, 12, 13], [
-    [cost(1)],          // Skill requirement for 1 level (skill ID = 11)
-    [cost(1)],          // Skill requirement for 2 level (skill ID = 12)
-    [cost(1)]           // Skill requirement for 3 level (skill ID = 13)
+    [cost(1), switchReq(1)],          // Skill requirements for 1 level (skill ID = 11)
+    [cost(1), switchReq(1)],          // Skill requirements for 2 level (skill ID = 12)
+    [cost(1), switchReq(1)]           // Skill requirements for 3 level (skill ID = 13)
 ], [
      [changeVar(1, 1)], // On skill learn will increase the game variable 1 by 1.
      [changeVar(1, 2)], // On skill upgrade to second level will increase the game variable 1 by 2.
