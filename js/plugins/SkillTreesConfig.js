@@ -224,9 +224,6 @@ class Skill extends TreeObject {
     }
 
     iconId() {
-        if ($dataSkills[this.lvls[0]] == null)
-            throw new TypeError("RPGMV database does not contain skill with ID " + this.lvls[0]);
-
         return $dataSkills[this.lvls[0]].iconIndex;
     }
 
@@ -320,6 +317,11 @@ class Skill extends TreeObject {
         let copy = new Skill(this.symbol, this.lvls, this.reqs, this.learnActions);
 
         copy.level = this.level;
+
+        for (lvl of this.lvls) {
+            if ($dataSkills[lvl] == null)
+                throw new TypeError("RPGMV database does not contain skill with ID " + lvl);
+        }
 
         return copy;
     }
