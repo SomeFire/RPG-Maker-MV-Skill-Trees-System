@@ -3,7 +3,7 @@
 //=============================================================================
 
 /*:
- * @plugindesc v1.9. Basic skill trees in a separate scene.
+ * @plugindesc v1.10. Basic skill trees in a separate scene.
  *
  * @author SomeFire
  *
