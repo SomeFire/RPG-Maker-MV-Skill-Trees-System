@@ -180,6 +180,9 @@
  * - Text for maxed skill level can be changed as plugin parameter.
  * - Reworked example skills.
  *
+ * Version 1.11:
+ * - Fixed bug when change class for actor with no trees.
+ *
  */
 
 //=============================================================================

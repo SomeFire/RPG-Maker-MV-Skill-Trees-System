@@ -277,6 +277,9 @@
  * - Text for maxed skill level can be changed as plugin parameter.
  * - Reworked example skills.
  *
+ * Version 1.11:
+ * - Fixed bug when change class for actor with no trees.
+ *
  */
 
 //=============================================================================
@@ -575,8 +578,17 @@ Trees_Window.prototype.numVisibleRows = function() {
 };
 
 Trees_Window.prototype.maxCols = function() {
-    if (this._actor && this._actor.skillTrees)
-        return Math.min(this._actor.skillTrees.trees.length, SkillTreesSystem.treeWindowMaxCols);
+    if (this._actor && this._actor.skillTrees) {
+        let cnt = 0;
+
+        for (let tree of this._actor.skillTrees.trees) {
+            if (tree.isVisible())
+                cnt++;
+        }
+
+        if (cnt > 0)
+            return Math.min(cnt, SkillTreesSystem.treeWindowMaxCols);
+    }
 
     return 1;
 };
@@ -588,7 +600,9 @@ Trees_Window.prototype.makeCommandList = function() {
                 if (tree.isVisible())
                     this.addCommand(tree.name, tree.symbol, true);
             }
-        } else
+        }
+
+        if (this.maxItems() === 0)
             this.addCommand(SkillTreesSystem._noTreesText, null, false);
     }
 
@@ -1544,19 +1558,24 @@ Game_Actor.prototype.changeSkillTrees = function(oldClassId, newClassId) {
 
     let needInit = true;
 
-    for (let tree of this.skillTrees.trees) {
-        if (tree._classId !== newClassId)
-            continue;
+    if (this.skillTrees && this.skillTrees.trees) {
+        for (let tree of this.skillTrees.trees) {
+            if (tree._classId !== newClassId)
+                continue;
 
-        needInit = false;
+            needInit = false;
 
-        break;
+            break;
+        }
     }
 
     if (needInit) {
         SkillTreesSystem.addClassTrees(this, newClassId);
         SkillTreesSystem.initClassFreePoints(this, newClassId);
     }
+
+    if (!this.skillTrees || !this.skillTrees.trees)
+        return;
 
     for (let tree of this.skillTrees.trees) {
         if (oldClassId > 0 && tree._classId === oldClassId)
