@@ -616,8 +616,10 @@ class JPCost extends Requirement {
     meets(actor, tree) {
         if (tree._classId > 0)
             return actor.jp(tree._classId) >= this.price;
-        else
-            throw new ReferenceError("Expected class tree. Tree name = " + tree.name);
+        else {
+            throw new ReferenceError("Expected class tree. Tree name = " + tree.name +
+                ". This tree expected to be in 'SkillTreesSystem.class2trees'.");
+        }
     }
 
     text() {
