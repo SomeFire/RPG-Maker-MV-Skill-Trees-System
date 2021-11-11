@@ -279,6 +279,7 @@
  *
  * Version 1.11:
  * - Fixed bug when change class for actor with no trees.
+ * - Fixed constructor for Scene_SkillTrees (was constructor of Scene_Menu).
  *
  */
 
@@ -416,7 +417,7 @@ function Scene_SkillTrees() {
 }
 
 Scene_SkillTrees.prototype = Object.create(Scene_MenuBase.prototype);
-Scene_SkillTrees.prototype.constructor = Scene_Menu;
+Scene_SkillTrees.prototype.constructor = Scene_SkillTrees;
 
 Scene_SkillTrees.prototype.initialize = function() {
     Scene_MenuBase.prototype.initialize.call(this);

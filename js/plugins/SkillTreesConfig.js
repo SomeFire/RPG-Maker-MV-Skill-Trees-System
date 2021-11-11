@@ -182,6 +182,7 @@
  *
  * Version 1.11:
  * - Fixed bug when change class for actor with no trees.
+ * - Fixed constructor for Scene_SkillTrees (was constructor of Scene_Menu).
  *
  */
 
