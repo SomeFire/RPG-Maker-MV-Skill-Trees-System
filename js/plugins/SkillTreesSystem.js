@@ -280,6 +280,7 @@
  * Version 1.11:
  * - Fixed bug when change class for actor with no trees.
  * - Fixed constructor for Scene_SkillTrees (was constructor of Scene_Menu).
+ * - Added OnLearnChangeVariableResettable, which rollback game variable on skill reset.
  *
  */
 
@@ -1817,6 +1818,17 @@ SkillTreesSystem.resetSkillTree = function(actor, tree) {
             for (let req of skill.reqs[i]) {
                 if (req.type === "points")
                     points += req.price;
+            }
+
+            if (!skill.learnActions || !skill.learnActions[i])
+                continue;
+
+            for (let learnAction of skill.learnActions[i]) {
+                if (learnAction.type === "game_variable_resettable") {
+                    let oldVal = $gameVariables.value(learnAction.varId);
+
+                    $gameVariables.setValue(learnAction.varId, oldVal - learnAction.inc)
+                }
             }
         }
 

@@ -183,6 +183,7 @@
  * Version 1.11:
  * - Fixed bug when change class for actor with no trees.
  * - Fixed constructor for Scene_SkillTrees (was constructor of Scene_Menu).
+ * - Added OnLearnChangeVariableResettable, which rollback game variable on skill reset.
  *
  */
 
@@ -904,6 +905,33 @@ class OnLearnChangeVariable extends OnLearnAction {
 }
 
 /**
+ * Will change game variable by given increment.
+ */
+class OnLearnChangeVariableResettable extends OnLearnAction {
+    /**
+     * @param variableId Game variable ID.
+     * @param increment Variable value will be changed by this value. Default value = 1.
+     */
+    constructor(variableId, increment) {
+        if (!variableId)
+            throw new TypeError("Unidentified variable ID.");
+
+        if (!increment)
+            increment = 1;
+
+        super("game_variable_resettable");
+        this.varId = variableId;
+        this.inc = increment;
+    }
+
+    action(actor, tree) {
+        let oldVal = $gameVariables.value(this.varId);
+
+        $gameVariables.setValue(this.varId, oldVal + this.inc)
+    }
+}
+
+/**
  * Will call common event with specified ID.
  *
  * WARNING! Some event actions have no immediate effect, so, game can freezes until effect's end.
@@ -1312,6 +1340,16 @@ function changeVar(variableId, increment) {
 }
 
 /**
+ * Game variable will be decremented on skill reset.
+ *
+ * @param variableId Game variable ID.
+ * @param increment Variable value will be changed by this value. Default value = 1.
+ */
+function changeVarResettable(variableId, increment) {
+    return new OnLearnChangeVariableResettable(variableId, increment);
+}
+
+/**
  * WARNING! Be careful, events can cause bugs - read OnLearnCommonEvent documentation.
  *
  * @param id Common event ID.
@@ -1486,8 +1524,8 @@ combatReflexes2 = skill('combatReflexes2', [11, 12, 13], [
     [cost(1), switchReq(1)],          // Skill requirements for 2 level (skill ID = 12)
     [cost(1), switchReq(1)]           // Skill requirements for 3 level (skill ID = 13)
 ], [
-     [changeVar(1, 1)], // On skill learn will increase the game variable 1 by 1.
-     [changeVar(1, 2)], // On skill upgrade to second level will increase the game variable 1 by 2.
+     [changeVarResettable(1, 1)], // On skill learn will increase the game variable 1 by 1.
+     [changeVarResettable(1, 2)], // On skill upgrade to second level will increase the game variable 1 by 2.
      [commonEvent(1)]   // On skill upgrade to third  level will call common event 1.
 ]);
 dualAttack2 = skill('dual2', [3], [
